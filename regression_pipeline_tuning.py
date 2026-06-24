@@ -110,10 +110,7 @@ preprocessor = ColumnTransformer(
                             min_frequency=5,
                         ),
                     ),
-                    (
-                        "target",
-                        target_encoder,
-                    ),
+                    ("target", target_encoder),
                 ]
             ),
             make_column_selector(dtype_include=["category", "string"]),
@@ -201,3 +198,5 @@ for n_jobs in n_jobs_list:
         f"n_jobs: {n_jobs}, duration: {duration:.3f} s, speedup: {results[-1]['speedup']:.2f}x, Best R2: {hp_search.best_score_:.4f}"
     )
 
+
+# %%
