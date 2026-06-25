@@ -1,0 +1,145 @@
+[workspace]
+name = "regression-pipeline-tuning"
+version = "0.1.0"
+channels = ["conda-forge"]
+platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
+
+# ---------------------------------------------------------------------------
+# Python interpreter variants (pick one per environment).
+# ---------------------------------------------------------------------------
+[feature.gil.dependencies]
+python = ">=3.11,<3.14"
+
+[feature.freethreading.dependencies]
+python-freethreading = ">=3.14,<3.15"
+
+# ---------------------------------------------------------------------------
+# PyPI-only environment: scientific stack from PyPI.
+# ---------------------------------------------------------------------------
+[feature.pypi.pypi-dependencies]
+joblib = "*"
+numpy = "*"
+pandas = "*"
+scikit-learn = ">=1.8"
+
+[feature.pypi.tasks]
+pypi-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+pypi-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.pypi-ft.tasks]
+pypi-freethreading-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+pypi-freethreading-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+# ---------------------------------------------------------------------------
+# conda-forge environments with selectable BLAS/LAPACK implementations.
+# ---------------------------------------------------------------------------
+[feature.openblas-pthreads.dependencies]
+libopenblas = { version = "*", build = "*pthreads*" }
+numpy = "*"
+scipy = "*"
+scikit-learn = "*"
+joblib = "*"
+pandas = "*"
+
+[feature.openblas-pthreads.tasks]
+openblas-pthreads-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+openblas-pthreads-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.openblas-pthreads-ft.tasks]
+openblas-pthreads-freethreading-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+openblas-pthreads-freethreading-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.openblas-openmp.dependencies]
+libopenblas = { version = "*", build = "*openmp*" }
+numpy = "*"
+scipy = "*"
+scikit-learn = "*"
+joblib = "*"
+pandas = "*"
+
+[feature.openblas-openmp.tasks]
+openblas-openmp-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+openblas-openmp-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.openblas-openmp-ft.tasks]
+openblas-openmp-freethreading-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+openblas-openmp-freethreading-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.newaccelerate]
+platforms = ["osx-64", "osx-arm64"]
+
+[feature.newaccelerate.system-requirements]
+macos = "13.3"
+
+[feature.newaccelerate.dependencies]
+libblas = { version = "*", build = "*newaccelerate*" }
+liblapack = { version = "*", build = "*newaccelerate*" }
+numpy = "*"
+scipy = "*"
+scikit-learn = "*"
+joblib = "*"
+pandas = "*"
+
+[feature.newaccelerate.tasks]
+newaccelerate-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+newaccelerate-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.newaccelerate-ft.tasks]
+newaccelerate-freethreading-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+newaccelerate-freethreading-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.mkl]
+platforms = ["linux-64", "osx-64", "win-64"]
+
+[feature.mkl.dependencies]
+libblas = { version = "*", build = "*mkl*" }
+liblapack = { version = "*", build = "*mkl*" }
+mkl = "*"
+numpy = "*"
+scipy = "*"
+scikit-learn = "*"
+joblib = "*"
+pandas = "*"
+
+[feature.mkl.target.linux-64.tasks]
+mkl-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+mkl-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.mkl.target.osx-64.tasks]
+mkl-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+mkl-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.mkl.target.win-64.tasks]
+mkl-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+mkl-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.mkl-ft.target.linux-64.tasks]
+mkl-freethreading-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+mkl-freethreading-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.mkl-ft.target.osx-64.tasks]
+mkl-freethreading-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+mkl-freethreading-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[feature.mkl-ft.target.win-64.tasks]
+mkl-freethreading-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
+mkl-freethreading-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
+
+[environments]
+pypi = { features = ["pypi", "gil"], no-default-feature = true, solve-group = "pypi" }
+pypi-freethreading = { features = ["pypi", "freethreading", "pypi-ft"], no-default-feature = true }
+
+openblas-pthreads = { features = ["openblas-pthreads", "gil"], no-default-feature = true, solve-group = "openblas-pthreads" }
+openblas-pthreads-freethreading = { features = ["openblas-pthreads", "freethreading", "openblas-pthreads-ft"], no-default-feature = true }
+
+openblas-openmp = { features = ["openblas-openmp", "gil"], no-default-feature = true, solve-group = "openblas-openmp" }
+openblas-openmp-freethreading = { features = ["openblas-openmp", "freethreading", "openblas-openmp-ft"], no-default-feature = true }
+
+newaccelerate = { features = ["newaccelerate", "gil"], no-default-feature = true, solve-group = "newaccelerate" }
+newaccelerate-freethreading = { features = ["newaccelerate", "freethreading", "newaccelerate-ft"], no-default-feature = true }
+
+mkl = { features = ["mkl", "gil"], no-default-feature = true, solve-group = "mkl" }
+mkl-freethreading = { features = ["mkl", "freethreading", "mkl-ft"], no-default-feature = true }
+
+[dependencies]
+ipython = ">=9.14.1,<10"
