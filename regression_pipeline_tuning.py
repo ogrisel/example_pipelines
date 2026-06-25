@@ -30,9 +30,11 @@ from sklearn.preprocessing import (
     TargetEncoder,
     PowerTransformer,
 )
+from sklearn.utils.parallel import delayed, Parallel
 
 # %%
 warnings.filterwarnings("ignore", category=UserWarning, message=".*A worker stopped.*")
+warnings.filterwarnings("error", category=RuntimeWarning)
 # %%
 X, y = fetch_openml(data_id=42165, as_frame=True, return_X_y=True)
 y = y.astype(np.float32).values
@@ -169,8 +171,9 @@ results = []
 n_iter = 30
 print(f"Benchmarking hyper-parameter tuning with {n_iter=} and {cv.n_splits=}...")
 for n_jobs in n_jobs_list:
-    # Warm-up joblib workers.
-    joblib.Parallel(n_jobs=n_jobs)([joblib.delayed(lambda: None)() for _ in range(10)])
+    # Warm-up joblib workers to ignore the process startup overhead: nominally,
+    # Python programs should not change the number of workers so often.
+    Parallel(n_jobs=n_jobs)([delayed(lambda: None)() for _ in range(10)])
 
     # Measure the time taken to tuned hyperparameters.
     tic = time.time()
