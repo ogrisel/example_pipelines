@@ -145,7 +145,7 @@ mkl-freethreading = { features = ["mkl-deps", "freethreading", "mkl-ft"], no-def
 # Run all benchmark tasks that are compatible with the host platform.
 # ---------------------------------------------------------------------------
 [tasks]
-run-all = { depends-on = [
+run-all-common = { depends-on = [
   "pypi-gil-threading",
   "pypi-gil-loky",
   "pypi-freethreading-threading",
@@ -159,91 +159,34 @@ run-all = { depends-on = [
   "openblas-openmp-freethreading-threading",
   "openblas-openmp-freethreading-loky",
 ] }
+
+run-all-newaccelerate = { depends-on = [
+  "newaccelerate-gil-threading",
+  "newaccelerate-gil-loky",
+  "newaccelerate-freethreading-threading",
+  "newaccelerate-freethreading-loky",
+] }
+
+run-all-mkl = { depends-on = [
+  "mkl-gil-threading",
+  "mkl-gil-loky",
+  "mkl-freethreading-threading",
+  "mkl-freethreading-loky",
+] }
+
+run-all = { depends-on = ["run-all-common"] }
 
 [target.osx-64.tasks]
-run-all = { depends-on = [
-  "pypi-gil-threading",
-  "pypi-gil-loky",
-  "pypi-freethreading-threading",
-  "pypi-freethreading-loky",
-  "openblas-pthreads-gil-threading",
-  "openblas-pthreads-gil-loky",
-  "openblas-pthreads-freethreading-threading",
-  "openblas-pthreads-freethreading-loky",
-  "openblas-openmp-gil-threading",
-  "openblas-openmp-gil-loky",
-  "openblas-openmp-freethreading-threading",
-  "openblas-openmp-freethreading-loky",
-  "newaccelerate-gil-threading",
-  "newaccelerate-gil-loky",
-  "newaccelerate-freethreading-threading",
-  "newaccelerate-freethreading-loky",
-  "mkl-gil-threading",
-  "mkl-gil-loky",
-  "mkl-freethreading-threading",
-  "mkl-freethreading-loky",
-] }
+run-all = { depends-on = ["run-all-common", "run-all-newaccelerate", "run-all-mkl"] }
 
 [target.osx-arm64.tasks]
-run-all = { depends-on = [
-# XXX: RuntimeWarning: divide by zero encountered in matmul on macOS. Skip for now.
-#   "pypi-gil-threading",
-#   "pypi-gil-loky",
-#   "pypi-freethreading-threading",
-#   "pypi-freethreading-loky",
-  "openblas-pthreads-gil-threading",
-  "openblas-pthreads-gil-loky",
-  "openblas-pthreads-freethreading-threading",
-  "openblas-pthreads-freethreading-loky",
-  "openblas-openmp-gil-threading",
-  "openblas-openmp-gil-loky",
-  "openblas-openmp-freethreading-threading",
-  "openblas-openmp-freethreading-loky",
-  "newaccelerate-gil-threading",
-  "newaccelerate-gil-loky",
-  "newaccelerate-freethreading-threading",
-  "newaccelerate-freethreading-loky",
-] }
+run-all = { depends-on = ["run-all-common", "run-all-newaccelerate"] }
 
 [target.linux-64.tasks]
-run-all = { depends-on = [
-  "pypi-gil-threading",
-  "pypi-gil-loky",
-  "pypi-freethreading-threading",
-  "pypi-freethreading-loky",
-  "openblas-pthreads-gil-threading",
-  "openblas-pthreads-gil-loky",
-  "openblas-pthreads-freethreading-threading",
-  "openblas-pthreads-freethreading-loky",
-  "openblas-openmp-gil-threading",
-  "openblas-openmp-gil-loky",
-  "openblas-openmp-freethreading-threading",
-  "openblas-openmp-freethreading-loky",
-  "mkl-gil-threading",
-  "mkl-gil-loky",
-  "mkl-freethreading-threading",
-  "mkl-freethreading-loky",
-] }
+run-all = { depends-on = ["run-all-common", "run-all-mkl"] }
 
 [target.win-64.tasks]
-run-all = { depends-on = [
-  "pypi-gil-threading",
-  "pypi-gil-loky",
-  "pypi-freethreading-threading",
-  "pypi-freethreading-loky",
-  "openblas-pthreads-gil-threading",
-  "openblas-pthreads-gil-loky",
-  "openblas-pthreads-freethreading-threading",
-  "openblas-pthreads-freethreading-loky",
-  "openblas-openmp-gil-threading",
-  "openblas-openmp-gil-loky",
-  "openblas-openmp-freethreading-threading",
-  "openblas-openmp-freethreading-loky",
-  "mkl-gil-threading",
-  "mkl-gil-loky",
-  "mkl-freethreading-threading",
-  "mkl-freethreading-loky",
-] }
+run-all = { depends-on = ["run-all-common", "run-all-mkl"] }
 
 [dependencies]
 ipython = ">=9.14.1,<10"

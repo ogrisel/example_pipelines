@@ -6,6 +6,7 @@ import platform
 import subprocess
 import sys
 import sysconfig
+import traceback
 import uuid
 from datetime import datetime, timezone
 from functools import partial
@@ -318,6 +319,7 @@ device_name = "cpu"
 joblib_backend = "loky"
 max_n_workers = 1
 array_api_namespace = "numpy"
+capture_errors = True
 
 if not in_notebook():
     parser = argparse.ArgumentParser()
@@ -325,9 +327,15 @@ if not in_notebook():
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--max-n-workers", type=int, default=1)
     parser.add_argument("--joblib-backend", type=str, default=None)
+    parser.add_argument(
+        "--no-capture-errors",
+        action="store_true",
+        help="Do not catch fit errors; let exceptions propagate instead of recording them.",
+    )
     args = parser.parse_args()
 
     max_n_workers = args.max_n_workers
+    capture_errors = not args.no_capture_errors
 
     if args.joblib_backend is not None:
         joblib_backend = args.joblib_backend
@@ -468,27 +476,48 @@ for n_jobs in n_jobs_list:
         error_score="raise",
         random_state=42,
     )
-    hp_search.fit(X, y)
-    toc = time.time()
-    duration = toc - tic
-    speedup = (
-        run_record["timings"][0]["duration_s"] / duration
-        if run_record["timings"]
-        else 1.0
-    )
-    run_record["timings"].append(
-        {
-            "recorded_at": datetime.now(timezone.utc).isoformat(),
-            "n_jobs": int(n_jobs),
-            "duration_s": duration,
-            "speedup": speedup,
-            "best_r2": float(hp_search.best_score_),
-        }
-    )
+    timing_record = {
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+        "n_jobs": int(n_jobs),
+        "duration_s": None,
+        "speedup": None,
+        "best_r2": None,
+        "error": None,
+    }
+    fit_error = None
+    if capture_errors:
+        try:
+            hp_search.fit(X, y)
+        except Exception:
+            fit_error = traceback.format_exc()
+    else:
+        hp_search.fit(X, y)
+
+    if fit_error is not None:
+        timing_record["duration_s"] = time.time() - tic
+        timing_record["error"] = fit_error
+        run_record["timings"].append(timing_record)
+        write_json_result(results_path, run_record)
+        print(f"n_jobs: {n_jobs}, failed after {timing_record['duration_s']:.3f} s")
+        continue
+
+    duration = time.time() - tic
+    timing_record["duration_s"] = duration
+    if not run_record["timings"]:
+        timing_record["speedup"] = 1.0
+    elif run_record["timings"][0]["error"] is not None:
+        timing_record["speedup"] = None
+    else:
+        timing_record["speedup"] = run_record["timings"][0]["duration_s"] / duration
+    timing_record["best_r2"] = float(hp_search.best_score_)
+    run_record["timings"].append(timing_record)
     write_json_result(results_path, run_record)
-    timing = run_record["timings"][-1]
+    if timing_record["speedup"] is None:
+        speedup_msg = "speedup: n/a"
+    else:
+        speedup_msg = f"speedup: {timing_record['speedup']:.2f}x"
     print(
-        f"n_jobs: {n_jobs}, duration: {duration:.3f} s, speedup: {timing['speedup']:.2f}x, Best R2: {hp_search.best_score_:.4f}"
+        f"n_jobs: {n_jobs}, duration: {duration:.3f} s, {speedup_msg}, Best R2: {hp_search.best_score_:.4f}"
     )
 
 run_record["completed_at"] = datetime.now(timezone.utc).isoformat()
