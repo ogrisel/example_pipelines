@@ -1,8 +1,18 @@
 # %%
 import argparse
+import json
 import os
+import platform
+import subprocess
+import sys
+import sysconfig
+import uuid
+from datetime import datetime, timezone
 from functools import partial
 from importlib import import_module
+from importlib.metadata import PackageNotFoundError, distribution
+from pathlib import Path
+from urllib.parse import urlparse
 import time
 from pprint import pprint
 import warnings
@@ -10,6 +20,7 @@ import warnings
 import joblib
 import numpy as np
 import pandas as pd
+import threadpoolctl
 
 import sklearn
 from sklearn.compose import (
@@ -32,6 +43,254 @@ from sklearn.preprocessing import (
 )
 from sklearn.utils.parallel import delayed, Parallel
 
+RESULTS_DIR = Path(__file__).resolve().parent / "results" / "regression_pipeline_tuning"
+BENCHMARK_SCRIPT = Path(__file__).name
+
+
+def write_json_result(path, record):
+    with path.open("w", encoding="utf-8") as file:
+        json.dump(record, file, indent=2, sort_keys=True)
+        file.write("\n")
+
+
+def _run_command(args):
+    try:
+        return subprocess.check_output(
+            args, text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def _os_family():
+    system = platform.system()
+    if system == "Darwin":
+        return "macOS"
+    if system == "Windows":
+        return "windows"
+    if system == "Linux":
+        return "linux"
+    return system.lower()
+
+
+def _gil_enabled():
+    if hasattr(sys, "_is_gil_enabled"):
+        return sys._is_gil_enabled()
+    return sysconfig.get_config_var("Py_GIL_DISABLED") != 1
+
+
+def _linux_cpuinfo():
+    info = {}
+    try:
+        with open("/proc/cpuinfo", encoding="utf-8") as file:
+            for line in file:
+                if ":" not in line:
+                    continue
+                key, value = (part.strip() for part in line.split(":", 1))
+                if key in {"vendor_id", "model name", "cpu cores"}:
+                    info[key] = value
+    except OSError:
+        pass
+    return info
+
+
+def _cpu_details():
+    family = _os_family()
+    details = {
+        "architecture": platform.machine(),
+        "manufacturer": None,
+        "model": None,
+        "physical_cores": joblib.cpu_count(only_physical_cores=True),
+        "logical_cores": joblib.cpu_count(only_physical_cores=False),
+    }
+
+    if family == "macOS":
+        brand = _run_command(["sysctl", "-n", "machdep.cpu.brand_string"])
+        details["model"] = brand
+        if brand:
+            if "Apple" in brand:
+                details["manufacturer"] = "Apple"
+            elif "Intel" in brand:
+                details["manufacturer"] = "Intel"
+    elif family == "linux":
+        cpuinfo = _linux_cpuinfo()
+        details["manufacturer"] = cpuinfo.get("vendor_id")
+        details["model"] = cpuinfo.get("model name")
+    elif family == "windows":
+        details["manufacturer"] = platform.processor() or None
+        details["model"] = _run_command(["wmic", "cpu", "get", "Name", "/value"])
+        if details["model"]:
+            for line in details["model"].splitlines():
+                if line.startswith("Name="):
+                    details["model"] = line.split("=", 1)[1].strip()
+                    break
+
+    return details
+
+
+def _normalize_channel_url(channel_url):
+    if not channel_url:
+        return None
+
+    if channel_url.startswith("pypi"):
+        return "pypi.org"
+
+    parsed = urlparse(channel_url)
+    if parsed.netloc in {"pypi.org", "files.pythonhosted.org"}:
+        return "pypi.org"
+
+    path_parts = [part for part in parsed.path.split("/") if part]
+    if parsed.netloc in {"conda.anaconda.org", "anaconda.org"} and path_parts:
+        return path_parts[0]
+
+    if parsed.netloc:
+        return parsed.netloc
+
+    return channel_url
+
+
+def _conda_package_channel(package_name):
+    conda_prefix = os.environ.get("CONDA_PREFIX")
+    if not conda_prefix:
+        return None
+
+    meta_dir = Path(conda_prefix) / "conda-meta"
+    if not meta_dir.is_dir():
+        return None
+
+    for meta_file in sorted(meta_dir.glob(f"{package_name}-*.json")):
+        try:
+            metadata = json.loads(meta_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if metadata.get("name") != package_name:
+            continue
+        channel_url = metadata.get("channel") or metadata.get("url")
+        return _normalize_channel_url(channel_url)
+
+    return None
+
+
+def _pixi_environment():
+    return os.environ.get("PIXI_ENVIRONMENT_NAME")
+
+
+def _package_info(package_name):
+    try:
+        dist = distribution(package_name)
+    except PackageNotFoundError:
+        return {"version": None, "channel": None}
+
+    info = {"version": dist.version, "channel": _conda_package_channel(package_name)}
+    if info["channel"] is not None:
+        return info
+
+    try:
+        installer = dist.read_text("INSTALLER").strip()
+    except (FileNotFoundError, OSError, TypeError):
+        installer = None
+
+    if installer in {"pip", "uv", "uv-pixi"}:
+        info["channel"] = "pypi.org"
+        return info
+
+    try:
+        direct_url = json.loads(dist.read_text("direct_url.json"))
+        info["channel"] = (
+            _normalize_channel_url(direct_url.get("url", "")) or "pypi.org"
+        )
+    except (FileNotFoundError, OSError, TypeError, json.JSONDecodeError):
+        pass
+
+    return info
+
+
+def _threadpool_libraries():
+    libraries = []
+    for entry in threadpoolctl.threadpool_info():
+        libraries.append(
+            {
+                "user_api": entry.get("user_api"),
+                "internal_api": entry.get("internal_api"),
+                "version": entry.get("version"),
+                "threading_layer": entry.get("threading_layer"),
+                "num_threads": entry.get("num_threads"),
+                "architecture": entry.get("architecture"),
+            }
+        )
+
+    if not any(library["user_api"] == "blas" for library in libraries):
+        libraries.append(
+            {
+                "user_api": "blas",
+                "internal_api": "newaccelerate",
+                "version": None,
+                "threading_layer": None,
+                "num_threads": None,
+                "architecture": None,
+            }
+        )
+
+    return libraries
+
+
+def create_run_record(
+    *,
+    run_id,
+    joblib_backend,
+    array_api_namespace,
+    device,
+    max_n_workers,
+    n_iter,
+    cv,
+    openml_data_id,
+    results_file,
+):
+    packages = {
+        package: _package_info(package)
+        for package in ("numpy", "scipy", "scikit-learn", "pandas", "joblib")
+    }
+    cpu = _cpu_details()
+
+    return {
+        "run_id": str(run_id),
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+        "results_file": results_file,
+        "run": {
+            "joblib_backend": joblib_backend,
+            "array_api_namespace": array_api_namespace,
+            "device": device,
+            "max_n_workers": max_n_workers,
+        },
+        "benchmark": {
+            "script": BENCHMARK_SCRIPT,
+            "openml_data_id": openml_data_id,
+            "n_iter": n_iter,
+            "cv_n_splits": cv.n_splits,
+            "cv_test_size": cv.test_size,
+            "random_state": cv.random_state,
+        },
+        "system": {
+            "python": {
+                "version": sys.version.replace("\n", " "),
+                "gil_enabled": _gil_enabled(),
+            },
+            "os": {
+                "family": _os_family(),
+                "version": platform.release(),
+                "platform": platform.platform(),
+            },
+            "cpu": cpu,
+            "pixi": {
+                "environment": _pixi_environment(),
+            },
+            "packages": packages,
+            "threadpool_libraries": _threadpool_libraries(),
+        },
+        "timings": [],
+    }
+
+
 # %%
 warnings.filterwarnings("ignore", category=UserWarning, message=".*A worker stopped.*")
 warnings.filterwarnings("error", category=RuntimeWarning)
@@ -39,6 +298,7 @@ warnings.filterwarnings("error", category=RuntimeWarning)
 X, y = fetch_openml(data_id=42165, as_frame=True, return_X_y=True)
 y = y.astype(np.float32).values
 cv = ShuffleSplit(n_splits=3, test_size=0.2, random_state=42)
+OPENML_DATA_ID = 42165
 
 
 # %%
@@ -56,6 +316,8 @@ def in_notebook():
 xp = np
 device_name = "cpu"
 joblib_backend = "loky"
+max_n_workers = 1
+array_api_namespace = "numpy"
 
 if not in_notebook():
     parser = argparse.ArgumentParser()
@@ -64,6 +326,8 @@ if not in_notebook():
     parser.add_argument("--max-n-workers", type=int, default=1)
     parser.add_argument("--joblib-backend", type=str, default=None)
     args = parser.parse_args()
+
+    max_n_workers = args.max_n_workers
 
     if args.joblib_backend is not None:
         joblib_backend = args.joblib_backend
@@ -79,6 +343,7 @@ if not in_notebook():
         sklearn.set_config(array_api_dispatch=True)
         xp = import_module(args.array_api_namespace)
         device_name = args.device
+        array_api_namespace = args.array_api_namespace
 
 print(f"Array API namespace: {xp.__name__}")
 print(f"Device: {device_name}")
@@ -166,9 +431,25 @@ param_grid = {
 # TODO: run for various values of n_jobs and plot a scalability curve.
 cpu_count = joblib.cpu_count(only_physical_cores=True)
 n_jobs_list = 2 ** np.arange(int(np.log2(cpu_count) + 1))
-results = []
 
 n_iter = 30
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+run_id = uuid.uuid4()
+results_path = RESULTS_DIR / f"{datetime.now().strftime('%Y%m%dT%H%M%S')}_{run_id}.json"
+run_record = create_run_record(
+    run_id=run_id,
+    joblib_backend=joblib_backend,
+    array_api_namespace=array_api_namespace,
+    device=device_name,
+    max_n_workers=max_n_workers,
+    n_iter=n_iter,
+    cv=cv,
+    openml_data_id=OPENML_DATA_ID,
+    results_file=results_path.name,
+)
+write_json_result(results_path, run_record)
+print(f"Recording results to {results_path} (run_id={run_id})")
+
 print(f"Benchmarking hyper-parameter tuning with {n_iter=} and {cv.n_splits=}...")
 for n_jobs in n_jobs_list:
     # Warm-up joblib workers to ignore the process startup overhead: nominally,
@@ -190,16 +471,28 @@ for n_jobs in n_jobs_list:
     hp_search.fit(X, y)
     toc = time.time()
     duration = toc - tic
-    results.append(
+    speedup = (
+        run_record["timings"][0]["duration_s"] / duration
+        if run_record["timings"]
+        else 1.0
+    )
+    run_record["timings"].append(
         {
-            "n_jobs": n_jobs,
-            "duration": duration,
-            "speedup": results[0]["duration"] / duration if results else 1,
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+            "n_jobs": int(n_jobs),
+            "duration_s": duration,
+            "speedup": speedup,
+            "best_r2": float(hp_search.best_score_),
         }
     )
+    write_json_result(results_path, run_record)
+    timing = run_record["timings"][-1]
     print(
-        f"n_jobs: {n_jobs}, duration: {duration:.3f} s, speedup: {results[-1]['speedup']:.2f}x, Best R2: {hp_search.best_score_:.4f}"
+        f"n_jobs: {n_jobs}, duration: {duration:.3f} s, speedup: {timing['speedup']:.2f}x, Best R2: {hp_search.best_score_:.4f}"
     )
+
+run_record["completed_at"] = datetime.now(timezone.utc).isoformat()
+write_json_result(results_path, run_record)
 
 
 # %%
