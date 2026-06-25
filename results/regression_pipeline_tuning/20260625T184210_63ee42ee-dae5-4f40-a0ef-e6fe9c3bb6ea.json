@@ -1,0 +1,115 @@
+{
+  "benchmark": {
+    "cv_n_splits": 3,
+    "cv_test_size": 0.2,
+    "n_iter": 30,
+    "openml_data_id": 42165,
+    "random_state": 42,
+    "script": "regression_pipeline_tuning.py"
+  },
+  "completed_at": "2026-06-25T16:42:53.642429+00:00",
+  "recorded_at": "2026-06-25T16:42:10.459178+00:00",
+  "results_file": "20260625T184210_63ee42ee-dae5-4f40-a0ef-e6fe9c3bb6ea.json",
+  "run": {
+    "array_api_namespace": "numpy",
+    "device": "cpu",
+    "joblib_backend": "threading",
+    "max_n_workers": 1
+  },
+  "run_id": "63ee42ee-dae5-4f40-a0ef-e6fe9c3bb6ea",
+  "system": {
+    "cpu": {
+      "architecture": "arm64",
+      "logical_cores": 10,
+      "manufacturer": "Apple",
+      "model": "Apple M4",
+      "physical_cores": 10
+    },
+    "os": {
+      "family": "macOS",
+      "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+      "version": "25.5.0"
+    },
+    "packages": {
+      "joblib": {
+        "channel": "conda-forge",
+        "version": "1.5.3"
+      },
+      "numpy": {
+        "channel": "conda-forge",
+        "version": "2.5.0"
+      },
+      "pandas": {
+        "channel": "conda-forge",
+        "version": "3.0.3"
+      },
+      "scikit-learn": {
+        "channel": "conda-forge",
+        "version": "1.9.0"
+      },
+      "scipy": {
+        "channel": "conda-forge",
+        "version": "1.18.0"
+      }
+    },
+    "pixi": {
+      "environment": "newaccelerate-freethreading"
+    },
+    "python": {
+      "gil_enabled": false,
+      "version": "3.14.6 free-threading build | packaged by conda-forge | (main, Jun 12 2026, 08:50:34) [Clang 20.1.8 ]"
+    },
+    "threadpool_libraries": [
+      {
+        "architecture": null,
+        "internal_api": "openmp",
+        "num_threads": 10,
+        "threading_layer": null,
+        "user_api": "openmp",
+        "version": null
+      },
+      {
+        "architecture": null,
+        "internal_api": "newaccelerate",
+        "num_threads": null,
+        "threading_layer": null,
+        "user_api": "blas",
+        "version": null
+      }
+    ]
+  },
+  "timings": [
+    {
+      "best_r2": 0.8654154936472574,
+      "duration_s": 8.024919986724854,
+      "error": null,
+      "n_jobs": 1,
+      "recorded_at": "2026-06-25T16:42:10.461078+00:00",
+      "speedup": 1.0
+    },
+    {
+      "best_r2": 0.8654154936472574,
+      "duration_s": 8.638117790222168,
+      "error": null,
+      "n_jobs": 2,
+      "recorded_at": "2026-06-25T16:42:18.510942+00:00",
+      "speedup": 0.9290125675073084
+    },
+    {
+      "best_r2": 0.8654154936472574,
+      "duration_s": 9.20083212852478,
+      "error": null,
+      "n_jobs": 4,
+      "recorded_at": "2026-06-25T16:42:27.167390+00:00",
+      "speedup": 0.8721950226486235
+    },
+    {
+      "best_r2": 0.8654154936472574,
+      "duration_s": 17.257242918014526,
+      "error": null,
+      "n_jobs": 8,
+      "recorded_at": "2026-06-25T16:42:36.385139+00:00",
+      "speedup": 0.46501750162812994
+    }
+  ]
+}

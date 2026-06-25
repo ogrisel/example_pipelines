@@ -1,0 +1,115 @@
+{
+  "benchmark": {
+    "cv_n_splits": 3,
+    "cv_test_size": 0.2,
+    "n_iter": 30,
+    "openml_data_id": 42165,
+    "random_state": 42,
+    "script": "regression_pipeline_tuning.py"
+  },
+  "completed_at": "2026-06-25T16:34:45.444503+00:00",
+  "recorded_at": "2026-06-25T16:33:57.328070+00:00",
+  "results_file": "20260625T183357_562deefe-1683-4cbc-aa81-b66e715bf9de.json",
+  "run": {
+    "array_api_namespace": "numpy",
+    "device": "cpu",
+    "joblib_backend": "loky",
+    "max_n_workers": 1
+  },
+  "run_id": "562deefe-1683-4cbc-aa81-b66e715bf9de",
+  "system": {
+    "cpu": {
+      "architecture": "arm64",
+      "logical_cores": 10,
+      "manufacturer": "Apple",
+      "model": "Apple M4",
+      "physical_cores": 10
+    },
+    "os": {
+      "family": "macOS",
+      "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+      "version": "25.5.0"
+    },
+    "packages": {
+      "joblib": {
+        "channel": "conda-forge",
+        "version": "1.5.3"
+      },
+      "numpy": {
+        "channel": "conda-forge",
+        "version": "2.5.0"
+      },
+      "pandas": {
+        "channel": "conda-forge",
+        "version": "3.0.3"
+      },
+      "scikit-learn": {
+        "channel": "conda-forge",
+        "version": "1.9.0"
+      },
+      "scipy": {
+        "channel": "conda-forge",
+        "version": "1.18.0"
+      }
+    },
+    "pixi": {
+      "environment": "openblas-pthreads-gil"
+    },
+    "python": {
+      "gil_enabled": true,
+      "version": "3.13.14 | packaged by conda-forge | (main, Jun 12 2026, 09:44:24) [Clang 19.1.7 ]"
+    },
+    "threadpool_libraries": [
+      {
+        "architecture": "VORTEX",
+        "internal_api": "openblas",
+        "num_threads": 10,
+        "threading_layer": "pthreads",
+        "user_api": "blas",
+        "version": "0.3.33"
+      },
+      {
+        "architecture": null,
+        "internal_api": "openmp",
+        "num_threads": 10,
+        "threading_layer": null,
+        "user_api": "openmp",
+        "version": null
+      }
+    ]
+  },
+  "timings": [
+    {
+      "best_r2": 0.8654155135154724,
+      "duration_s": 15.653961896896362,
+      "error": null,
+      "n_jobs": 1,
+      "recorded_at": "2026-06-25T16:33:57.330307+00:00",
+      "speedup": 1.0
+    },
+    {
+      "best_r2": 0.8654155135154724,
+      "duration_s": 12.020411968231201,
+      "error": null,
+      "n_jobs": 2,
+      "recorded_at": "2026-06-25T16:34:14.293890+00:00",
+      "speedup": 1.3022816471072942
+    },
+    {
+      "best_r2": 0.8654155135154724,
+      "duration_s": 8.532991886138916,
+      "error": null,
+      "n_jobs": 4,
+      "recorded_at": "2026-06-25T16:34:28.185457+00:00",
+      "speedup": 1.8345220651533523
+    },
+    {
+      "best_r2": 0.8654155135154724,
+      "duration_s": 6.242933988571167,
+      "error": null,
+      "n_jobs": 8,
+      "recorded_at": "2026-06-25T16:34:39.203110+00:00",
+      "speedup": 2.5074687519608254
+    }
+  ]
+}
