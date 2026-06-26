@@ -9,9 +9,11 @@ platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
 # ---------------------------------------------------------------------------
 [feature.gil.dependencies]
 python = ">=3.11,<3.14"
+ipython = "*"
 
 [feature.freethreading.dependencies]
 python-freethreading = ">=3.14,<3.15"
+ipython = "*"
 
 # ---------------------------------------------------------------------------
 # PyPI-only environment: scientific stack from PyPI.
@@ -188,5 +190,3 @@ run-all = { depends-on = ["run-all-common", "run-all-mkl"] }
 [target.win-64.tasks]
 run-all = { depends-on = ["run-all-common", "run-all-mkl"] }
 
-[dependencies]
-ipython = ">=9.14.1,<10"

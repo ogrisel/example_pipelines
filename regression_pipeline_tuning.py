@@ -439,8 +439,6 @@ run_record = create_run_record(
     openml_data_id=OPENML_DATA_ID,
     results_file=results_path.name,
 )
-write_json_result(results_path, run_record)
-print(f"Recording results to {results_path} (run_id={run_id})")
 
 print(f"Benchmarking hyper-parameter tuning with {n_iter=} and {cv.n_splits=}...")
 for n_jobs in n_jobs_list:
@@ -481,7 +479,6 @@ for n_jobs in n_jobs_list:
         timing_record["duration_s"] = time.time() - tic
         timing_record["error"] = fit_error
         run_record["timings"].append(timing_record)
-        write_json_result(results_path, run_record)
         print(f"n_jobs: {n_jobs}, failed after {timing_record['duration_s']:.3f} s")
         continue
 
@@ -495,7 +492,6 @@ for n_jobs in n_jobs_list:
         timing_record["speedup"] = run_record["timings"][0]["duration_s"] / duration
     timing_record["best_r2"] = float(hp_search.best_score_)
     run_record["timings"].append(timing_record)
-    write_json_result(results_path, run_record)
     if timing_record["speedup"] is None:
         speedup_msg = "speedup: n/a"
     else:
@@ -505,6 +501,7 @@ for n_jobs in n_jobs_list:
     )
 
 run_record["completed_at"] = datetime.now(timezone.utc).isoformat()
+print(f"Recording results to {results_path} (run_id={run_id})")
 write_json_result(results_path, run_record)
 
 

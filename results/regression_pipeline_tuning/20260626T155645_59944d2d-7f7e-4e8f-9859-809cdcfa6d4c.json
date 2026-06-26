@@ -7,16 +7,16 @@
     "random_state": 42,
     "script": "regression_pipeline_tuning.py"
   },
-  "completed_at": "2026-06-25T16:33:56.025711+00:00",
-  "recorded_at": "2026-06-25T16:32:53.127782+00:00",
-  "results_file": "20260625T183253_132bade8-04ce-42d1-bf8a-406327b24a4f.json",
+  "completed_at": "2026-06-26T13:58:03.435719+00:00",
+  "recorded_at": "2026-06-26T13:56:45.917688+00:00",
+  "results_file": "20260626T155645_59944d2d-7f7e-4e8f-9859-809cdcfa6d4c.json",
   "run": {
     "array_api_namespace": "numpy",
     "device": "cpu",
     "joblib_backend": "threading",
     "max_n_workers": 1
   },
-  "run_id": "132bade8-04ce-42d1-bf8a-406327b24a4f",
+  "run_id": "59944d2d-7f7e-4e8f-9859-809cdcfa6d4c",
   "system": {
     "cpu": {
       "architecture": "arm64",
@@ -26,7 +26,7 @@
       "physical_cores": 10
     },
     "os": {
-      "family": "macOS",
+      "family": "Darwin",
       "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
       "version": "25.5.0"
     },
@@ -64,15 +64,15 @@
         "architecture": "VORTEX",
         "internal_api": "openblas",
         "num_threads": 10,
+        "prefix": "libopenblas",
         "threading_layer": "pthreads",
         "user_api": "blas",
         "version": "0.3.33"
       },
       {
-        "architecture": null,
         "internal_api": "openmp",
         "num_threads": 10,
-        "threading_layer": null,
+        "prefix": "libomp",
         "user_api": "openmp",
         "version": null
       }
@@ -81,35 +81,35 @@
   "timings": [
     {
       "best_r2": 0.8654155135154724,
-      "duration_s": 11.356845140457153,
+      "duration_s": 14.28228497505188,
       "error": null,
       "n_jobs": 1,
-      "recorded_at": "2026-06-25T16:32:53.129890+00:00",
+      "recorded_at": "2026-06-26T13:56:45.919765+00:00",
       "speedup": 1.0
     },
     {
       "best_r2": 0.8654155135154724,
-      "duration_s": 14.481582164764404,
+      "duration_s": 18.464604139328003,
       "error": null,
       "n_jobs": 2,
-      "recorded_at": "2026-06-25T16:33:04.510591+00:00",
-      "speedup": 0.7842268207468278
+      "recorded_at": "2026-06-26T13:57:00.225975+00:00",
+      "speedup": 0.773495324745785
     },
     {
       "best_r2": 0.8654155135154724,
-      "duration_s": 17.425764322280884,
+      "duration_s": 20.16282606124878,
       "error": null,
       "n_jobs": 4,
-      "recorded_at": "2026-06-25T16:33:19.007892+00:00",
-      "speedup": 0.6517272316105007
+      "recorded_at": "2026-06-26T13:57:18.705022+00:00",
+      "speedup": 0.7083473780742079
     },
     {
       "best_r2": 0.8654155135154724,
-      "duration_s": 19.575044870376587,
+      "duration_s": 24.552438974380493,
       "error": null,
       "n_jobs": 8,
-      "recorded_at": "2026-06-25T16:33:36.450573+00:00",
-      "speedup": 0.5801695585200807
+      "recorded_at": "2026-06-26T13:57:38.883446+00:00",
+      "speedup": 0.5817053446280789
     }
   ]
 }

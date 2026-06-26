@@ -7,16 +7,16 @@
     "random_state": 42,
     "script": "regression_pipeline_tuning.py"
   },
-  "completed_at": "2026-06-25T16:41:39.431813+00:00",
-  "recorded_at": "2026-06-25T16:41:13.115717+00:00",
-  "results_file": "20260625T184113_fd7af14f-ee0b-4e4b-905e-7043eab71ab3.json",
+  "completed_at": "2026-06-26T14:03:34.126179+00:00",
+  "recorded_at": "2026-06-26T14:03:06.719331+00:00",
+  "results_file": "20260626T160306_d7147f6b-4d03-4f68-80b2-443b3fe9052f.json",
   "run": {
     "array_api_namespace": "numpy",
     "device": "cpu",
     "joblib_backend": "threading",
     "max_n_workers": 1
   },
-  "run_id": "fd7af14f-ee0b-4e4b-905e-7043eab71ab3",
+  "run_id": "d7147f6b-4d03-4f68-80b2-443b3fe9052f",
   "system": {
     "cpu": {
       "architecture": "arm64",
@@ -26,7 +26,7 @@
       "physical_cores": 10
     },
     "os": {
-      "family": "macOS",
+      "family": "Darwin",
       "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
       "version": "25.5.0"
     },
@@ -61,10 +61,9 @@
     },
     "threadpool_libraries": [
       {
-        "architecture": null,
         "internal_api": "openmp",
         "num_threads": 10,
-        "threading_layer": null,
+        "prefix": "libomp",
         "user_api": "openmp",
         "version": null
       },
@@ -81,35 +80,35 @@
   "timings": [
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 6.287751197814941,
+      "duration_s": 6.787650108337402,
       "error": null,
       "n_jobs": 1,
-      "recorded_at": "2026-06-25T16:41:13.117945+00:00",
+      "recorded_at": "2026-06-26T14:03:06.720920+00:00",
       "speedup": 1.0
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 6.4223620891571045,
+      "duration_s": 7.046508073806763,
       "error": null,
       "n_jobs": 2,
-      "recorded_at": "2026-06-25T16:41:19.427693+00:00",
-      "speedup": 0.979040283080671
+      "recorded_at": "2026-06-26T14:03:13.529966+00:00",
+      "speedup": 0.9632643626093915
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 6.593926191329956,
+      "duration_s": 6.699242115020752,
       "error": null,
       "n_jobs": 4,
-      "recorded_at": "2026-06-25T16:41:25.863982+00:00",
-      "speedup": 0.9535671184919252
+      "recorded_at": "2026-06-26T14:03:20.590381+00:00",
+      "speedup": 1.013196715658093
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 6.961235761642456,
+      "duration_s": 6.823374032974243,
       "error": null,
       "n_jobs": 8,
-      "recorded_at": "2026-06-25T16:41:32.470452+00:00",
-      "speedup": 0.903252154231218
+      "recorded_at": "2026-06-26T14:03:27.302952+00:00",
+      "speedup": 0.9947644780332716
     }
   ]
 }
