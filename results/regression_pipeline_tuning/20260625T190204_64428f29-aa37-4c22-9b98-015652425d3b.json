@@ -1,0 +1,118 @@
+{
+  "benchmark": {
+    "cv_n_splits": 3,
+    "cv_test_size": 0.2,
+    "n_iter": 30,
+    "openml_data_id": 42165,
+    "random_state": 42,
+    "script": "regression_pipeline_tuning.py"
+  },
+  "completed_at": "2026-06-25T17:02:30.795132+00:00",
+  "recorded_at": "2026-06-25T17:02:04.504838+00:00",
+  "results_file": "20260625T190204_64428f29-aa37-4c22-9b98-015652425d3b.json",
+  "run": {
+    "array_api_namespace": "numpy",
+    "device": "cpu",
+    "joblib_backend": "loky",
+    "max_n_workers": 1
+  },
+  "run_id": "64428f29-aa37-4c22-9b98-015652425d3b",
+  "system": {
+    "cpu": {
+      "architecture": "x86_64",
+      "logical_cores": 16,
+      "manufacturer": "GenuineIntel",
+      "model": "Intel(R) Core(TM) Ultra X7 358H",
+      "physical_cores": 16
+    },
+    "os": {
+      "family": "linux",
+      "platform": "Linux-6.17.0-23-generic-x86_64-with-glibc2.39",
+      "version": "6.17.0-23-generic"
+    },
+    "packages": {
+      "joblib": {
+        "channel": "conda-forge",
+        "version": "1.5.3"
+      },
+      "numpy": {
+        "channel": "conda-forge",
+        "version": "2.5.0"
+      },
+      "pandas": {
+        "channel": "conda-forge",
+        "version": "3.0.3"
+      },
+      "scikit-learn": {
+        "channel": "conda-forge",
+        "version": "1.9.0"
+      },
+      "scipy": {
+        "channel": "conda-forge",
+        "version": "1.18.0"
+      }
+    },
+    "pixi": {
+      "environment": "openblas-openmp-gil"
+    },
+    "python": {
+      "gil_enabled": true,
+      "version": "3.13.14 | packaged by conda-forge | (main, Jun 12 2026, 09:50:25) [GCC 14.3.0]"
+    },
+    "threadpool_libraries": [
+      {
+        "architecture": "Haswell",
+        "internal_api": "openblas",
+        "num_threads": 16,
+        "threading_layer": "openmp",
+        "user_api": "blas",
+        "version": "0.3.33"
+      },
+      {
+        "architecture": null,
+        "internal_api": "openmp",
+        "num_threads": 16,
+        "threading_layer": null,
+        "user_api": "openmp",
+        "version": null
+      }
+    ]
+  },
+  "timings": [
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 8.332386016845703,
+      "n_jobs": 1,
+      "recorded_at": "2026-06-25T17:02:12.838252+00:00",
+      "speedup": 1.0
+    },
+    {
+      "best_r2": 0.8654161095619202,
+      "duration_s": 5.048867702484131,
+      "n_jobs": 2,
+      "recorded_at": "2026-06-25T17:02:18.398240+00:00",
+      "speedup": 1.6503474655804555
+    },
+    {
+      "best_r2": 0.8654156923294067,
+      "duration_s": 3.2508280277252197,
+      "n_jobs": 4,
+      "recorded_at": "2026-06-25T17:02:22.278340+00:00",
+      "speedup": 2.5631580464366563
+    },
+    {
+      "best_r2": 0.8654159108797709,
+      "duration_s": 3.26625919342041,
+      "n_jobs": 8,
+      "recorded_at": "2026-06-25T17:02:26.570602+00:00",
+      "speedup": 2.5510486227273566
+    },
+    {
+      "best_r2": 0.8654160896937052,
+      "duration_s": 3.039048194885254,
+      "n_jobs": 16,
+      "recorded_at": "2026-06-25T17:02:30.794685+00:00",
+      "speedup": 2.7417748855938466
+    }
+  ]
+}
