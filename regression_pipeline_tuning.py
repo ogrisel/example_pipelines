@@ -63,17 +63,6 @@ def _run_command(args):
         return None
 
 
-def _os_family():
-    system = platform.system()
-    if system == "Darwin":
-        return "macOS"
-    if system == "Windows":
-        return "windows"
-    if system == "Linux":
-        return "linux"
-    return system.lower()
-
-
 def _gil_enabled():
     if hasattr(sys, "_is_gil_enabled"):
         return sys._is_gil_enabled()
@@ -96,7 +85,7 @@ def _linux_cpuinfo():
 
 
 def _cpu_details():
-    family = _os_family()
+    family = platform.system()
     details = {
         "architecture": platform.machine(),
         "manufacturer": None,
@@ -105,7 +94,7 @@ def _cpu_details():
         "logical_cores": joblib.cpu_count(only_physical_cores=False),
     }
 
-    if family == "macOS":
+    if family == "Darwin":
         brand = _run_command(["sysctl", "-n", "machdep.cpu.brand_string"])
         details["model"] = brand
         if brand:
@@ -113,11 +102,11 @@ def _cpu_details():
                 details["manufacturer"] = "Apple"
             elif "Intel" in brand:
                 details["manufacturer"] = "Intel"
-    elif family == "linux":
+    elif family == "Linux":
         cpuinfo = _linux_cpuinfo()
         details["manufacturer"] = cpuinfo.get("vendor_id")
         details["model"] = cpuinfo.get("model name")
-    elif family == "windows":
+    elif family == "Windows":
         details["manufacturer"] = platform.processor() or None
         details["model"] = _run_command(["wmic", "cpu", "get", "Name", "/value"])
         if details["model"]:
@@ -207,20 +196,13 @@ def _package_info(package_name):
 
 
 def _threadpool_libraries():
-    libraries = []
-    for entry in threadpoolctl.threadpool_info():
-        libraries.append(
-            {
-                "user_api": entry.get("user_api"),
-                "internal_api": entry.get("internal_api"),
-                "version": entry.get("version"),
-                "threading_layer": entry.get("threading_layer"),
-                "num_threads": entry.get("num_threads"),
-                "architecture": entry.get("architecture"),
-            }
-        )
+    libraries = list(threadpoolctl.threadpool_info())
 
-    if not any(library["user_api"] == "blas" for library in libraries):
+    # On macOS, if the BLAS library is not found, add a new entry for the
+    # newaccelerate library which is currently not visible by threadpoolctl.
+    if platform.system() == "Darwin" and not any(
+        library["user_api"] == "blas" for library in libraries
+    ):
         libraries.append(
             {
                 "user_api": "blas",
@@ -231,7 +213,9 @@ def _threadpool_libraries():
                 "architecture": None,
             }
         )
-
+    for library in libraries:
+        # "prefix" is enough to identify the library.
+        del library["filepath"]
     return libraries
 
 
@@ -277,7 +261,7 @@ def create_run_record(
                 "gil_enabled": _gil_enabled(),
             },
             "os": {
-                "family": _os_family(),
+                "family": platform.system(),
                 "version": platform.release(),
                 "platform": platform.platform(),
             },
