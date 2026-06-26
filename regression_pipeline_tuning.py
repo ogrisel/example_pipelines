@@ -197,6 +197,9 @@ def _package_info(package_name):
 
 def _threadpool_libraries():
     libraries = list(threadpoolctl.threadpool_info())
+    for library in libraries:
+        # "prefix" is enough to identify the library.
+        del library["filepath"]
 
     # On macOS, if the BLAS library is not found, add a new entry for the
     # newaccelerate library which is currently not visible by threadpoolctl.
@@ -213,9 +216,6 @@ def _threadpool_libraries():
                 "architecture": None,
             }
         )
-    for library in libraries:
-        # "prefix" is enough to identify the library.
-        del library["filepath"]
     return libraries
 
 
