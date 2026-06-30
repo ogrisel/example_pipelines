@@ -12,6 +12,7 @@ from pathlib import Path
 RESULTS_DIR = (
     Path(__file__).resolve().parent / "results" / "regression_pipeline_tuning"
 )
+REPORT_ROOT = Path(__file__).resolve().parent
 
 
 @dataclass(frozen=True)
@@ -278,32 +279,6 @@ def fmt_duration_at_n_jobs(
     return f"{fmt_seconds(duration_s)} @ n_jobs={n_jobs}"
 
 
-def fmt_run_timings(
-    run: RunAnalysis,
-    *,
-    include_baseline: bool = True,
-    include_best: bool = True,
-    include_peak: bool = False,
-    include_max: bool = False,
-) -> str:
-    parts: list[str] = []
-    if include_baseline:
-        parts.append(f"baseline {fmt_seconds(run.baseline_duration_s)}")
-    if include_best:
-        parts.append(
-            f"best {fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs)}"
-        )
-    if include_peak:
-        parts.append(
-            f"peak {fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs)}"
-        )
-    if include_max:
-        parts.append(
-            f"max {fmt_duration_at_n_jobs(run.max_duration_s, run.max_n_jobs)}"
-        )
-    return "; ".join(parts)
-
-
 def faster_label(
     left: float,
     right: float,
@@ -336,36 +311,64 @@ def duration_delta_pct(reference_s: float, candidate_s: float) -> float:
     return (reference_s - candidate_s) / reference_s * 100
 
 
-def print_metric_comparison(
-    label: str,
-    *,
-    gil_value: float | None,
-    gil_suffix: str,
-    ft_value: float | None,
-    ft_suffix: str,
-    lower_is_better: bool,
-) -> None:
-    gil_text = "n/a" if gil_value is None else f"{gil_value:.2f}{gil_suffix}"
-    ft_text = "n/a" if ft_value is None else f"{ft_value:.2f}{ft_suffix}"
-    print(f"  {label:<24} gil {gil_text:<16} no-gil {ft_text}")
+def md_cell(value: object) -> str:
+    return str(value).replace("|", "\\|")
 
+
+def md_table(headers: list[str], rows: list[list[str]]) -> str:
+    if not rows:
+        return "_No data._"
+    lines = [
+        "| " + " | ".join(md_cell(header) for header in headers) + " |",
+        "| " + " | ".join("---" for _ in headers) + " |",
+    ]
+    for row in rows:
+        lines.append("| " + " | ".join(md_cell(cell) for cell in row) + " |")
+    return "\n".join(lines)
+
+
+def metric_verdict(
+    gil_value: float | None,
+    ft_value: float | None,
+    *,
+    lower_is_better: bool,
+) -> str:
     if gil_value is None or ft_value is None:
-        return
+        return "n/a"
     if lower_is_better:
-        verdict = faster_label(
+        return faster_label(
             gil_value,
             ft_value,
             left_name="gil",
             right_name="no-gil",
         )
-    else:
-        verdict = better_scaling_label(
-            gil_value,
-            ft_value,
-            left_name="gil",
-            right_name="no-gil",
-        )
-    print(f"    -> {verdict}")
+    return better_scaling_label(
+        gil_value,
+        ft_value,
+        left_name="gil",
+        right_name="no-gil",
+    )
+
+
+def results_file_href(results_file: str, results_dir: Path) -> str:
+    file_path = (results_dir / results_file).resolve()
+    try:
+        return file_path.relative_to(REPORT_ROOT.resolve()).as_posix()
+    except ValueError:
+        return file_path.as_posix()
+
+
+def results_file_link(
+    results_file: str,
+    results_dir: Path,
+    *,
+    text: str,
+) -> str:
+    return f"[{text}]({results_file_href(results_file, results_dir)})"
+
+
+def run_reference(run: RunAnalysis, results_dir: Path) -> str:
+    return results_file_link(run.results_file, results_dir, text=run.run_id)
 
 
 def gil_comparison_to_dict(comparison: GilComparison) -> dict:
@@ -410,7 +413,101 @@ def gil_comparison_to_dict(comparison: GilComparison) -> dict:
     return payload
 
 
-def report_gil_comparisons(runs: list[RunAnalysis]) -> None:
+def gil_comparison_rows(
+    comparison: GilComparison,
+) -> tuple[list[list[str]], dict[str, int], dict[str, int]] | None:
+    gil = comparison.gil_run
+    ft = comparison.freethreading_run
+    assert gil is not None and ft is not None
+
+    gil_wins = {"baseline": 0, "best": 0, "peak_speedup": 0, "speedup_at_max": 0}
+    ft_wins = dict(gil_wins)
+
+    if gil.failed or ft.failed:
+        if gil.failed and ft.failed:
+            status = "both variants failed"
+        else:
+            gil_status = "failed" if gil.failed else "ok"
+            ft_status = "failed" if ft.failed else "ok"
+            status = f"incomplete pair (gil={gil_status}, no-gil={ft_status})"
+        return (
+            [[comparison.key.label(), status, "n/a", "n/a", "n/a"]],
+            gil_wins,
+            ft_wins,
+        )
+
+    metrics = [
+        (
+            "single-thread baseline",
+            gil.baseline_duration_s,
+            ft.baseline_duration_s,
+            lambda value: fmt_seconds(value),
+            True,
+            "baseline",
+        ),
+        (
+            "best duration",
+            gil.best_duration_s,
+            ft.best_duration_s,
+            lambda value, run: fmt_duration_at_n_jobs(value, run.best_n_jobs),
+            True,
+            "best",
+        ),
+        (
+            "peak speedup",
+            gil.peak_speedup,
+            ft.peak_speedup,
+            lambda value, run: (
+                f"{fmt_speedup(value)} "
+                f"({fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs)})"
+            ),
+            False,
+            "peak_speedup",
+        ),
+        (
+            "speedup at max cores",
+            gil.speedup_at_max_n_jobs,
+            ft.speedup_at_max_n_jobs,
+            lambda value, run: (
+                f"{fmt_speedup(value)} "
+                f"({fmt_duration_at_n_jobs(run.max_duration_s, run.max_n_jobs)})"
+            ),
+            False,
+            "speedup_at_max",
+        ),
+    ]
+
+    rows = []
+    for label, gil_value, ft_value, fmt_fn, lower_is_better, win_key in metrics:
+        if label == "single-thread baseline":
+            gil_text = fmt_fn(gil_value) if gil_value is not None else "n/a"
+            ft_text = fmt_fn(ft_value) if ft_value is not None else "n/a"
+        else:
+            gil_text = fmt_fn(gil_value, gil) if gil_value is not None else "n/a"
+            ft_text = fmt_fn(ft_value, ft) if ft_value is not None else "n/a"
+        verdict = metric_verdict(
+            gil_value,
+            ft_value,
+            lower_is_better=lower_is_better,
+        )
+        rows.append([comparison.key.label(), label, gil_text, ft_text, verdict])
+
+        if gil_value is None or ft_value is None:
+            continue
+        if lower_is_better:
+            if gil_value < ft_value:
+                gil_wins[win_key] += 1
+            elif gil_value > ft_value:
+                ft_wins[win_key] += 1
+        elif gil_value > ft_value:
+            gil_wins[win_key] += 1
+        elif gil_value < ft_value:
+            ft_wins[win_key] += 1
+
+    return rows, gil_wins, ft_wins
+
+
+def report_gil_comparisons(runs: list[RunAnalysis]) -> list[str]:
     comparisons = group_gil_comparisons(runs)
     paired = [
         comparison
@@ -424,153 +521,110 @@ def report_gil_comparisons(runs: list[RunAnalysis]) -> None:
     ]
 
     if not comparisons:
-        return
+        return []
 
-    print("GIL vs free-threading comparisons")
+    lines = ["### GIL vs free-threading comparisons", ""]
     if not paired:
-        print("  No complete gil/no-gil pairs found for this hardware.")
+        lines.append("No complete gil/no-gil pairs found for this hardware.")
+        lines.append("")
     else:
-        gil_wins = {"baseline": 0, "best": 0, "peak_speedup": 0, "speedup_at_max": 0}
-        ft_wins = dict(gil_wins)
+        comparison_rows: list[list[str]] = []
+        total_gil_wins = {"baseline": 0, "best": 0, "peak_speedup": 0, "speedup_at_max": 0}
+        total_ft_wins = dict(total_gil_wins)
 
         for comparison in paired:
-            gil = comparison.gil_run
-            ft = comparison.freethreading_run
-            assert gil is not None and ft is not None
+            result = gil_comparison_rows(comparison)
+            assert result is not None
+            rows, gil_wins, ft_wins = result
+            comparison_rows.extend(rows)
+            for key in total_gil_wins:
+                total_gil_wins[key] += gil_wins[key]
+                total_ft_wins[key] += ft_wins[key]
 
-            print(f"\n  {comparison.key.label()}")
-            if gil.failed or ft.failed:
-                if gil.failed and ft.failed:
-                    print("    both variants failed")
-                else:
-                    gil_status = "failed" if gil.failed else "ok"
-                    ft_status = "failed" if ft.failed else "ok"
-                    print(f"    incomplete pair (gil={gil_status}, no-gil={ft_status})")
-                continue
-
-            print_metric_comparison(
-                "single-thread baseline",
-                gil_value=gil.baseline_duration_s,
-                gil_suffix="s",
-                ft_value=ft.baseline_duration_s,
-                ft_suffix="s",
-                lower_is_better=True,
+        lines.append(
+            md_table(
+                ["Stack / backend", "Metric", "GIL", "No-GIL", "Verdict"],
+                comparison_rows,
             )
-            print_metric_comparison(
-                "best duration",
-                gil_value=gil.best_duration_s,
-                gil_suffix=f"s @ n_jobs={gil.best_n_jobs}",
-                ft_value=ft.best_duration_s,
-                ft_suffix=f"s @ n_jobs={ft.best_n_jobs}",
-                lower_is_better=True,
+        )
+        lines.append("")
+        lines.append("#### Summary across paired stacks")
+        lines.append("")
+        lines.append(
+            md_table(
+                ["Metric", "GIL wins", "No-GIL wins"],
+                [
+                    ["single-thread baseline", str(total_gil_wins["baseline"]), str(total_ft_wins["baseline"])],
+                    ["best duration", str(total_gil_wins["best"]), str(total_ft_wins["best"])],
+                    ["peak speedup", str(total_gil_wins["peak_speedup"]), str(total_ft_wins["peak_speedup"])],
+                    [
+                        "speedup at max cores",
+                        str(total_gil_wins["speedup_at_max"]),
+                        str(total_ft_wins["speedup_at_max"]),
+                    ],
+                ],
             )
-            print_metric_comparison(
-                "peak speedup",
-                gil_value=gil.peak_speedup,
-                gil_suffix=(
-                    f"x ({fmt_duration_at_n_jobs(gil.peak_duration_s, gil.peak_speedup_n_jobs)})"
-                ),
-                ft_value=ft.peak_speedup,
-                ft_suffix=(
-                    f"x ({fmt_duration_at_n_jobs(ft.peak_duration_s, ft.peak_speedup_n_jobs)})"
-                ),
-                lower_is_better=False,
-            )
-            print_metric_comparison(
-                "speedup at max cores",
-                gil_value=gil.speedup_at_max_n_jobs,
-                gil_suffix=(
-                    f"x ({fmt_duration_at_n_jobs(gil.max_duration_s, gil.max_n_jobs)})"
-                ),
-                ft_value=ft.speedup_at_max_n_jobs,
-                ft_suffix=(
-                    f"x ({fmt_duration_at_n_jobs(ft.max_duration_s, ft.max_n_jobs)})"
-                ),
-                lower_is_better=False,
-            )
-
-            if gil.baseline_duration_s and ft.baseline_duration_s:
-                winner = "gil" if gil.baseline_duration_s < ft.baseline_duration_s else "no-gil"
-                if gil.baseline_duration_s == ft.baseline_duration_s:
-                    pass
-                elif winner == "gil":
-                    gil_wins["baseline"] += 1
-                else:
-                    ft_wins["baseline"] += 1
-            if gil.best_duration_s and ft.best_duration_s:
-                if gil.best_duration_s < ft.best_duration_s:
-                    gil_wins["best"] += 1
-                elif gil.best_duration_s > ft.best_duration_s:
-                    ft_wins["best"] += 1
-            if gil.peak_speedup and ft.peak_speedup:
-                if gil.peak_speedup > ft.peak_speedup:
-                    gil_wins["peak_speedup"] += 1
-                elif gil.peak_speedup < ft.peak_speedup:
-                    ft_wins["peak_speedup"] += 1
-            if gil.speedup_at_max_n_jobs and ft.speedup_at_max_n_jobs:
-                if gil.speedup_at_max_n_jobs > ft.speedup_at_max_n_jobs:
-                    gil_wins["speedup_at_max"] += 1
-                elif gil.speedup_at_max_n_jobs < ft.speedup_at_max_n_jobs:
-                    ft_wins["speedup_at_max"] += 1
-
-        print("\n  Summary across paired stacks")
-        print(
-            f"    single-thread baseline: gil {gil_wins['baseline']} wins, "
-            f"no-gil {ft_wins['baseline']} wins"
         )
-        print(
-            f"    best duration:          gil {gil_wins['best']} wins, "
-            f"no-gil {ft_wins['best']} wins"
-        )
-        print(
-            f"    peak speedup:           gil {gil_wins['peak_speedup']} wins, "
-            f"no-gil {ft_wins['peak_speedup']} wins"
-        )
-        print(
-            f"    speedup at max cores:   gil {gil_wins['speedup_at_max']} wins, "
-            f"no-gil {ft_wins['speedup_at_max']} wins"
-        )
+        lines.append("")
 
     if partial:
-        print("\n  Incomplete pairs (missing counterpart)")
+        lines.append("#### Incomplete pairs (missing counterpart)")
+        lines.append("")
+        partial_rows = []
         for comparison in partial:
             missing = "no-gil" if comparison.freethreading_run is None else "gil"
             present = comparison.freethreading_run or comparison.gil_run
             assert present is not None
             status = "failed" if present.failed else "ok"
-            print(
-                f"    {comparison.key.label()}: only {missing} missing "
-                f"(have {present.setup.pixi_environment}, status={status})"
+            partial_rows.append(
+                [
+                    comparison.key.label(),
+                    missing,
+                    present.setup.pixi_environment or "unknown",
+                    status,
+                ]
             )
+        lines.append(
+            md_table(
+                ["Stack / backend", "Missing", "Present environment", "Status"],
+                partial_rows,
+            )
+        )
+        lines.append("")
 
-    print()
+    return lines
 
 
-def print_run_line(analysis: RunAnalysis, *, detail: str) -> None:
-    print(
-        f"  - {analysis.setup_label}\n"
-        f"    {detail}\n"
-        f"    run_id={analysis.run_id}, file={analysis.results_file}"
-    )
-
-
-def report_hardware(hardware: HardwareKey, runs: list[RunAnalysis]) -> None:
+def report_hardware(
+    hardware: HardwareKey,
+    runs: list[RunAnalysis],
+    *,
+    results_dir: Path,
+) -> list[str]:
     successful = [run for run in runs if not run.failed]
     failed = [run for run in runs if run.failed]
 
-    print("=" * 80)
-    print(hardware.label())
-    print(f"Runs: {len(runs)} total, {len(successful)} successful, {len(failed)} failed")
-    print()
+    lines = [
+        f"## {hardware.label()}",
+        "",
+        f"Runs: {len(runs)} total, {len(successful)} successful, {len(failed)} failed",
+        "",
+    ]
 
     if not successful:
-        print("No successful runs for this hardware.")
+        lines.append("No successful runs for this hardware.")
         if failed:
-            print("\nFailed setups:")
-            for run in failed:
-                print(f"  - {run.setup_label} ({run.results_file})")
-        print()
-        return
+            lines.extend(["", "### Failed setups", ""])
+            lines.append(
+                md_table(
+                    ["Setup", "Results file"],
+                    [[run.setup_label, results_file_link(
+                        run.results_file, results_dir, text=run.results_file
+                    )] for run in failed],
+                )
+            )
+        lines.append("")
+        return lines
 
     fastest = min(successful, key=lambda run: run.best_duration_s or float("inf"))
     fastest_baseline = min(
@@ -590,64 +644,127 @@ def report_hardware(hardware: HardwareKey, runs: list[RunAnalysis]) -> None:
         if (run.speedup_at_max_n_jobs or 0) > 1.05 and (run.max_n_jobs or 0) > 1
     ]
 
-    print("Most efficient (absolute speed)")
-    print_run_line(
-        fastest,
-        detail=fmt_run_timings(fastest, include_peak=False, include_max=False),
-    )
+    absolute_rows = [
+        [
+            "best overall",
+            fastest.setup_label,
+            fmt_seconds(fastest.baseline_duration_s),
+            fmt_duration_at_n_jobs(fastest.best_duration_s, fastest.best_n_jobs),
+            run_reference(fastest, results_dir),
+        ]
+    ]
     if fastest.run_id != fastest_baseline.run_id:
-        print_run_line(
-            fastest_baseline,
-            detail=(
-                f"fastest single-thread baseline "
-                f"{fmt_seconds(fastest_baseline.baseline_duration_s)}; "
-                f"best {fmt_duration_at_n_jobs(fastest_baseline.best_duration_s, fastest_baseline.best_n_jobs)}"
-            ),
+        absolute_rows.append(
+            [
+                "fastest single-thread baseline",
+                fastest_baseline.setup_label,
+                fmt_seconds(fastest_baseline.baseline_duration_s),
+                fmt_duration_at_n_jobs(
+                    fastest_baseline.best_duration_s,
+                    fastest_baseline.best_n_jobs,
+                ),
+                run_reference(fastest_baseline, results_dir),
+            ]
         )
-    print()
 
-    print("Most efficient (scalability)")
-    print_run_line(
-        best_peak_speedup,
-        detail=(
-            f"peak speedup {fmt_speedup(best_peak_speedup.peak_speedup)} "
-            f"({fmt_duration_at_n_jobs(best_peak_speedup.peak_duration_s, best_peak_speedup.peak_speedup_n_jobs)}); "
-            f"{fmt_run_timings(best_peak_speedup, include_peak=False, include_max=False)}"
-        ),
+    lines.extend(
+        [
+            "### Most efficient (absolute speed)",
+            "",
+            md_table(
+                ["Highlight", "Setup", "Baseline", "Best", "Run"],
+                absolute_rows,
+            ),
+            "",
+        ]
     )
+
+    scalability_rows = [
+        [
+            "peak speedup",
+            best_peak_speedup.setup_label,
+            fmt_speedup(best_peak_speedup.peak_speedup),
+            "n/a",
+            fmt_duration_at_n_jobs(
+                best_peak_speedup.peak_duration_s,
+                best_peak_speedup.peak_speedup_n_jobs,
+            ),
+            fmt_seconds(best_peak_speedup.baseline_duration_s),
+            fmt_duration_at_n_jobs(
+                best_peak_speedup.best_duration_s,
+                best_peak_speedup.best_n_jobs,
+            ),
+            run_reference(best_peak_speedup, results_dir),
+        ]
+    ]
     if scalable:
         best_peak_efficiency = max(
             scalable,
             key=lambda run: run.parallel_efficiency_at_peak or float("-inf"),
         )
-        print_run_line(
-            best_peak_efficiency,
-            detail=(
-                f"best peak parallel efficiency "
-                f"{fmt_ratio(best_peak_efficiency.parallel_efficiency_at_peak)} "
-                f"(speedup {fmt_speedup(best_peak_efficiency.peak_speedup)} "
-                f"at {fmt_duration_at_n_jobs(best_peak_efficiency.peak_duration_s, best_peak_efficiency.peak_speedup_n_jobs)}); "
-                f"{fmt_run_timings(best_peak_efficiency, include_peak=False, include_max=False)}"
-            ),
+        scalability_rows.append(
+            [
+                "best peak parallel efficiency",
+                best_peak_efficiency.setup_label,
+                fmt_speedup(best_peak_efficiency.peak_speedup),
+                fmt_ratio(best_peak_efficiency.parallel_efficiency_at_peak),
+                fmt_duration_at_n_jobs(
+                    best_peak_efficiency.peak_duration_s,
+                    best_peak_efficiency.peak_speedup_n_jobs,
+                ),
+                fmt_seconds(best_peak_efficiency.baseline_duration_s),
+                fmt_duration_at_n_jobs(
+                    best_peak_efficiency.best_duration_s,
+                    best_peak_efficiency.best_n_jobs,
+                ),
+                run_reference(best_peak_efficiency, results_dir),
+            ]
         )
     if scalable_at_max:
         best_max_efficiency = max(
             scalable_at_max,
             key=lambda run: run.parallel_efficiency_at_max or float("-inf"),
         )
-        print_run_line(
-            best_max_efficiency,
-            detail=(
-                f"best max-core parallel efficiency "
-                f"{fmt_ratio(best_max_efficiency.parallel_efficiency_at_max)} "
-                f"(speedup {fmt_speedup(best_max_efficiency.speedup_at_max_n_jobs)} "
-                f"at {fmt_duration_at_n_jobs(best_max_efficiency.max_duration_s, best_max_efficiency.max_n_jobs)}); "
-                f"{fmt_run_timings(best_max_efficiency, include_peak=False, include_max=False)}"
-            ),
+        scalability_rows.append(
+            [
+                "best max-core parallel efficiency",
+                best_max_efficiency.setup_label,
+                fmt_speedup(best_max_efficiency.speedup_at_max_n_jobs),
+                fmt_ratio(best_max_efficiency.parallel_efficiency_at_max),
+                fmt_duration_at_n_jobs(
+                    best_max_efficiency.max_duration_s,
+                    best_max_efficiency.max_n_jobs,
+                ),
+                fmt_seconds(best_max_efficiency.baseline_duration_s),
+                fmt_duration_at_n_jobs(
+                    best_max_efficiency.best_duration_s,
+                    best_max_efficiency.best_n_jobs,
+                ),
+                run_reference(best_max_efficiency, results_dir),
+            ]
         )
-    print()
 
-    print("Most problematic (lack of scalability)")
+    lines.extend(
+        [
+            "### Most efficient (scalability)",
+            "",
+            md_table(
+                [
+                    "Highlight",
+                    "Setup",
+                    "Speedup",
+                    "Parallel efficiency",
+                    "Duration",
+                    "Baseline",
+                    "Best",
+                    "Run",
+                ],
+                scalability_rows,
+            ),
+            "",
+        ]
+    )
+
     problematic = sorted(
         successful,
         key=lambda run: (
@@ -659,6 +776,7 @@ def report_hardware(hardware: HardwareKey, runs: list[RunAnalysis]) -> None:
         ),
     )
 
+    problematic_rows: list[list[str]] = []
     shown = 0
     for run in problematic:
         if shown >= 5:
@@ -679,32 +797,61 @@ def report_hardware(hardware: HardwareKey, runs: list[RunAnalysis]) -> None:
         if not is_problematic and shown >= 3:
             continue
         shown += 1
-        print_run_line(
-            run,
-            detail=(
-                f"speedup at max n_jobs={run.max_n_jobs}: "
+        problematic_rows.append(
+            [
+                run.setup_label,
+                fmt_seconds(run.baseline_duration_s),
+                fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs),
+                f"{fmt_speedup(run.peak_speedup)} "
+                f"({fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs)})",
                 f"{fmt_speedup(run.speedup_at_max_n_jobs)} "
-                f"({fmt_duration_at_n_jobs(run.max_duration_s, run.max_n_jobs)}); "
-                f"peak {fmt_speedup(run.peak_speedup)} "
-                f"({fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs)}); "
-                f"baseline {fmt_seconds(run.baseline_duration_s)}; "
-                f"best {fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs)}; "
-                f"slowdown at max {fmt_ratio(run.slowdown_at_max)}x baseline; "
-                f"max-core efficiency {fmt_ratio(run.parallel_efficiency_at_max)}"
-            ),
+                f"({fmt_duration_at_n_jobs(run.max_duration_s, run.max_n_jobs)})",
+                f"{fmt_ratio(run.slowdown_at_max)}x",
+                fmt_ratio(run.parallel_efficiency_at_max),
+                run_reference(run, results_dir),
+            ]
         )
 
-    if shown == 0:
-        print("  No clearly problematic setups detected.")
-    print()
+    lines.append("### Most problematic (lack of scalability)")
+    lines.append("")
+    if problematic_rows:
+        lines.append(
+            md_table(
+                [
+                    "Setup",
+                    "Baseline",
+                    "Best",
+                    "Peak speedup",
+                    "Speedup @ max",
+                    "Slowdown @ max",
+                    "Max-core efficiency",
+                    "Run",
+                ],
+                problematic_rows,
+            )
+        )
+    else:
+        lines.append("No clearly problematic setups detected.")
+    lines.append("")
 
-    report_gil_comparisons(runs)
+    lines.extend(report_gil_comparisons(runs))
 
     if failed:
-        print("Failed setups (excluded from rankings)")
-        for run in failed:
-            print(f"  - {run.setup_label} ({run.results_file})")
-        print()
+        lines.extend(
+            [
+                "### Failed setups (excluded from rankings)",
+                "",
+                md_table(
+                    ["Setup", "Results file"],
+                    [[run.setup_label, results_file_link(
+                        run.results_file, results_dir, text=run.results_file
+                    )] for run in failed],
+                ),
+                "",
+            ]
+        )
+
+    return lines
 
 
 def analysis_to_dict(analysis: RunAnalysis) -> dict:
@@ -753,7 +900,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Emit machine-readable JSON instead of a text report.",
+        help="Emit machine-readable JSON instead of a markdown report.",
     )
     args = parser.parse_args(argv)
 
@@ -786,9 +933,17 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write("\n")
         return 0
 
-    print(f"Loaded {len(records)} result file(s) from {args.results_dir}\n")
+    report_lines = [
+        "# Regression pipeline tuning results",
+        "",
+        f"Loaded {len(records)} result file(s) from `{args.results_dir}`.",
+        "",
+    ]
     for hardware in sorted(grouped, key=lambda key: key.label()):
-        report_hardware(hardware, grouped[hardware])
+        report_lines.extend(
+            report_hardware(hardware, grouped[hardware], results_dir=args.results_dir)
+        )
+    print("\n".join(report_lines))
 
     return 0
 
