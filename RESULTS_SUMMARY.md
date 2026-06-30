@@ -8,26 +8,51 @@ Runs: 16 total, 16 successful, 0 failed
 
 ### Most efficient (absolute speed)
 
-| Highlight | Setup | Baseline | Best | Run |
-| --- | --- | --- | --- | --- |
-| best overall | pypi-gil / loky / gil | 11.30s | 6.34s @ n_jobs=8 | [6310fc6a-37ac-4415-ae3d-71b0505f1c09](results/regression_pipeline_tuning/20260630T110737_6310fc6a-37ac-4415-ae3d-71b0505f1c09.json) |
+| Rank | GIL | Distribution | Joblib backend | BLAS | Baseline | Best | Run |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| #1 | gil | pypi | loky | Accelerate | 11.30s | 6.34s @ n_jobs=8 | [6310fc6a-37ac-4415-ae3d-71b0505f1c09](results/regression_pipeline_tuning/20260630T110737_6310fc6a-37ac-4415-ae3d-71b0505f1c09.json) |
+| #2 | no-gil | conda-forge | loky | Accelerate | 12.86s | 6.49s @ n_jobs=8 | [5d87765a-ea1a-46bf-b42f-ff5992a03af4](results/regression_pipeline_tuning/20260630T113718_5d87765a-ea1a-46bf-b42f-ff5992a03af4.json) |
+| #3 | no-gil | pypi | loky | Accelerate | 12.63s | 6.64s @ n_jobs=8 | [b18fc4f7-d7e6-4d79-91d0-27d330255d5b](results/regression_pipeline_tuning/20260630T110907_b18fc4f7-d7e6-4d79-91d0-27d330255d5b.json) |
 
 ### Most efficient (scalability)
 
-| Highlight | Setup | Speedup | Parallel efficiency | Duration | Baseline | Best | Run |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| peak speedup | openblas-pthreads-freethreading / loky / no-gil | 15.98x | n/a | 11.30s @ n_jobs=8 | 180.55s | 11.30s @ n_jobs=8 | [8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0](results/regression_pipeline_tuning/20260630T112653_8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0.json) |
-| best peak parallel efficiency | openblas-pthreads-freethreading / loky / no-gil | 15.98x | 2.00 | 11.30s @ n_jobs=8 | 180.55s | 11.30s @ n_jobs=8 | [8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0](results/regression_pipeline_tuning/20260630T112653_8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0.json) |
-| best max-core parallel efficiency | openblas-pthreads-freethreading / loky / no-gil | 15.98x | 2.00 | 11.30s @ n_jobs=8 | 180.55s | 11.30s @ n_jobs=8 | [8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0](results/regression_pipeline_tuning/20260630T112653_8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0.json) |
+| Rank | GIL | Distribution | Joblib backend | BLAS | Speedup | Parallel efficiency | Duration | Baseline | Best | Run |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #1 | no-gil | conda-forge | loky | OpenBLAS (VORTEX, pthreads) | 15.98x | 2.00 | 11.30s @ n_jobs=8 | 180.55s | 11.30s @ n_jobs=8 | [8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0](results/regression_pipeline_tuning/20260630T112653_8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0.json) |
+| #2 | gil | conda-forge | loky | OpenBLAS (VORTEX, pthreads) | 10.97x | 1.37 | 14.54s @ n_jobs=8 | 159.49s | 14.54s @ n_jobs=8 | [3809d58b-398a-49af-9d50-52734d23fdfc](results/regression_pipeline_tuning/20260630T111559_3809d58b-398a-49af-9d50-52734d23fdfc.json) |
+| #3 | no-gil | conda-forge | loky | OpenBLAS (VORTEX, openmp) | 2.70x | 0.34 | 9.17s @ n_jobs=8 | 24.75s | 9.17s @ n_jobs=8 | [587d9e84-6604-44a9-92d7-6302ab7cc9d6](results/regression_pipeline_tuning/20260630T113321_587d9e84-6604-44a9-92d7-6302ab7cc9d6.json) |
 
 ### Most problematic (lack of scalability)
 
-| Setup | Baseline | Best | Peak speedup | Speedup @ max | Slowdown @ max | Max-core efficiency | Run |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| newaccelerate-gil / threading / gil | 12.50s | 12.28s @ n_jobs=2 | 1.02x (12.28s @ n_jobs=2) | 0.84x (14.82s @ n_jobs=8) | 1.19x | 0.11 | [4828c7ef-31c9-4317-910c-f372e6242e22](results/regression_pipeline_tuning/20260630T113434_4828c7ef-31c9-4317-910c-f372e6242e22.json) |
-| pypi-gil / threading / gil | 12.32s | 12.32s @ n_jobs=1 | 1.00x (12.32s @ n_jobs=1) | 0.88x (14.04s @ n_jobs=8) | 1.14x | 0.11 | [acc40cf9-5d13-458f-9ac9-990a5f049670](results/regression_pipeline_tuning/20260630T110642_acc40cf9-5d13-458f-9ac9-990a5f049670.json) |
-| pypi-freethreading / threading / no-gil | 12.56s | 9.09s @ n_jobs=2 | 1.38x (9.09s @ n_jobs=2) | 0.89x (14.11s @ n_jobs=8) | 1.12x | 0.11 | [c312f52b-b576-4250-9fd1-37cc98b051f1](results/regression_pipeline_tuning/20260630T110820_c312f52b-b576-4250-9fd1-37cc98b051f1.json) |
-| newaccelerate-freethreading / threading / no-gil | 16.02s | 10.55s @ n_jobs=2 | 1.52x (10.55s @ n_jobs=2) | 1.07x (14.96s @ n_jobs=8) | 0.93x | 0.13 | [950d1495-7328-4b7c-87e2-71af489e799c](results/regression_pipeline_tuning/20260630T113622_950d1495-7328-4b7c-87e2-71af489e799c.json) |
+| Rank | GIL | Distribution | Joblib backend | BLAS | Baseline | Best | Peak speedup | Speedup @ max | Slowdown @ max | Max-core efficiency | Run |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #1 | gil | conda-forge | threading | Accelerate | 12.50s | 12.28s @ n_jobs=2 | 1.02x (12.28s @ n_jobs=2) | 0.84x (14.82s @ n_jobs=8) | 1.19x | 0.11 | [4828c7ef-31c9-4317-910c-f372e6242e22](results/regression_pipeline_tuning/20260630T113434_4828c7ef-31c9-4317-910c-f372e6242e22.json) |
+| #2 | gil | pypi | threading | Accelerate | 12.32s | 12.32s @ n_jobs=1 | 1.00x (12.32s @ n_jobs=1) | 0.88x (14.04s @ n_jobs=8) | 1.14x | 0.11 | [acc40cf9-5d13-458f-9ac9-990a5f049670](results/regression_pipeline_tuning/20260630T110642_acc40cf9-5d13-458f-9ac9-990a5f049670.json) |
+| #3 | no-gil | pypi | threading | Accelerate | 12.56s | 9.09s @ n_jobs=2 | 1.38x (9.09s @ n_jobs=2) | 0.89x (14.11s @ n_jobs=8) | 1.12x | 0.11 | [c312f52b-b576-4250-9fd1-37cc98b051f1](results/regression_pipeline_tuning/20260630T110820_c312f52b-b576-4250-9fd1-37cc98b051f1.json) |
+
+<details>
+<summary>Full results and GIL vs free-threading comparisons</summary>
+
+### All runs
+
+| GIL | Distribution | Joblib backend | BLAS | Baseline | Best | Peak speedup | Speedup @ max | Peak parallel efficiency | Max-core parallel efficiency | Slowdown @ max | Run |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| no-gil | conda-forge | loky | Accelerate | 12.86s | 6.49s @ n_jobs=8 | 1.98x (6.49s @ n_jobs=8) | 1.98x (6.49s @ n_jobs=8) | 0.25 | 0.25 | 0.50x | [5d87765a-ea1a-46bf-b42f-ff5992a03af4](results/regression_pipeline_tuning/20260630T113718_5d87765a-ea1a-46bf-b42f-ff5992a03af4.json) |
+| no-gil | conda-forge | threading | Accelerate | 16.02s | 10.55s @ n_jobs=2 | 1.52x (10.55s @ n_jobs=2) | 1.07x (14.96s @ n_jobs=8) | 0.76 | 0.13 | 0.93x | [950d1495-7328-4b7c-87e2-71af489e799c](results/regression_pipeline_tuning/20260630T113622_950d1495-7328-4b7c-87e2-71af489e799c.json) |
+| gil | conda-forge | loky | Accelerate | 12.60s | 7.84s @ n_jobs=8 | 1.61x (7.84s @ n_jobs=8) | 1.61x (7.84s @ n_jobs=8) | 0.20 | 0.20 | 0.62x | [08f416f5-5b85-419a-81f2-0b794f554d92](results/regression_pipeline_tuning/20260630T113528_08f416f5-5b85-419a-81f2-0b794f554d92.json) |
+| gil | conda-forge | threading | Accelerate | 12.50s | 12.28s @ n_jobs=2 | 1.02x (12.28s @ n_jobs=2) | 0.84x (14.82s @ n_jobs=8) | 0.51 | 0.11 | 1.19x | [4828c7ef-31c9-4317-910c-f372e6242e22](results/regression_pipeline_tuning/20260630T113434_4828c7ef-31c9-4317-910c-f372e6242e22.json) |
+| no-gil | conda-forge | loky | OpenBLAS (VORTEX, openmp) | 24.75s | 9.17s @ n_jobs=8 | 2.70x (9.17s @ n_jobs=8) | 2.70x (9.17s @ n_jobs=8) | 0.34 | 0.34 | 0.37x | [587d9e84-6604-44a9-92d7-6302ab7cc9d6](results/regression_pipeline_tuning/20260630T113321_587d9e84-6604-44a9-92d7-6302ab7cc9d6.json) |
+| no-gil | conda-forge | threading | OpenBLAS (VORTEX, openmp) | 25.43s | 25.43s @ n_jobs=1 | 1.00x (25.43s @ n_jobs=1) | 1.00x (25.43s @ n_jobs=1) | 1.00 | 1.00 | 1.00x | [b61d2a07-31b5-417d-a90a-1f5442fbb5ce](results/regression_pipeline_tuning/20260630T113250_b61d2a07-31b5-417d-a90a-1f5442fbb5ce.json) |
+| gil | conda-forge | loky | OpenBLAS (VORTEX, openmp) | 19.91s | 7.88s @ n_jobs=8 | 2.53x (7.88s @ n_jobs=8) | 2.53x (7.88s @ n_jobs=8) | 0.32 | 0.32 | 0.40x | [bb1c7cb6-775c-412c-b09c-131f9fb9c244](results/regression_pipeline_tuning/20260630T113146_bb1c7cb6-775c-412c-b09c-131f9fb9c244.json) |
+| gil | conda-forge | threading | OpenBLAS (VORTEX, openmp) | 25.72s | 25.72s @ n_jobs=1 | 1.00x (25.72s @ n_jobs=1) | 1.00x (25.72s @ n_jobs=1) | 1.00 | 1.00 | 1.00x | [269c04aa-468e-4f75-96f8-2d4e4f587b62](results/regression_pipeline_tuning/20260630T113115_269c04aa-468e-4f75-96f8-2d4e4f587b62.json) |
+| no-gil | conda-forge | loky | OpenBLAS (VORTEX, pthreads) | 180.55s | 11.30s @ n_jobs=8 | 15.98x (11.30s @ n_jobs=8) | 15.98x (11.30s @ n_jobs=8) | 2.00 | 2.00 | 0.06x | [8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0](results/regression_pipeline_tuning/20260630T112653_8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0.json) |
+| no-gil | conda-forge | threading | OpenBLAS (VORTEX, pthreads) | 161.83s | 71.73s @ n_jobs=4 | 2.26x (71.73s @ n_jobs=4) | 2.03x (79.61s @ n_jobs=8) | 0.56 | 0.25 | 0.49x | [1cee5a9e-5a45-4275-b11d-5a65bb8029b8](results/regression_pipeline_tuning/20260630T112001_1cee5a9e-5a45-4275-b11d-5a65bb8029b8.json) |
+| gil | conda-forge | loky | OpenBLAS (VORTEX, pthreads) | 159.49s | 14.54s @ n_jobs=8 | 10.97x (14.54s @ n_jobs=8) | 10.97x (14.54s @ n_jobs=8) | 1.37 | 1.37 | 0.09x | [3809d58b-398a-49af-9d50-52734d23fdfc](results/regression_pipeline_tuning/20260630T111559_3809d58b-398a-49af-9d50-52734d23fdfc.json) |
+| gil | conda-forge | threading | OpenBLAS (VORTEX, pthreads) | 134.19s | 69.88s @ n_jobs=4 | 1.92x (69.88s @ n_jobs=4) | 1.70x (78.92s @ n_jobs=8) | 0.48 | 0.21 | 0.59x | [d197d79d-3774-4599-905c-63bd50f161cc](results/regression_pipeline_tuning/20260630T110954_d197d79d-3774-4599-905c-63bd50f161cc.json) |
+| no-gil | pypi | loky | Accelerate | 12.63s | 6.64s @ n_jobs=8 | 1.90x (6.64s @ n_jobs=8) | 1.90x (6.64s @ n_jobs=8) | 0.24 | 0.24 | 0.53x | [b18fc4f7-d7e6-4d79-91d0-27d330255d5b](results/regression_pipeline_tuning/20260630T110907_b18fc4f7-d7e6-4d79-91d0-27d330255d5b.json) |
+| no-gil | pypi | threading | Accelerate | 12.56s | 9.09s @ n_jobs=2 | 1.38x (9.09s @ n_jobs=2) | 0.89x (14.11s @ n_jobs=8) | 0.69 | 0.11 | 1.12x | [c312f52b-b576-4250-9fd1-37cc98b051f1](results/regression_pipeline_tuning/20260630T110820_c312f52b-b576-4250-9fd1-37cc98b051f1.json) |
+| gil | pypi | loky | Accelerate | 11.30s | 6.34s @ n_jobs=8 | 1.78x (6.34s @ n_jobs=8) | 1.78x (6.34s @ n_jobs=8) | 0.22 | 0.22 | 0.56x | [6310fc6a-37ac-4415-ae3d-71b0505f1c09](results/regression_pipeline_tuning/20260630T110737_6310fc6a-37ac-4415-ae3d-71b0505f1c09.json) |
+| gil | pypi | threading | Accelerate | 12.32s | 12.32s @ n_jobs=1 | 1.00x (12.32s @ n_jobs=1) | 0.88x (14.04s @ n_jobs=8) | 1.00 | 0.11 | 1.14x | [acc40cf9-5d13-458f-9ac9-990a5f049670](results/regression_pipeline_tuning/20260630T110642_acc40cf9-5d13-458f-9ac9-990a5f049670.json) |
 
 ### GIL vs free-threading comparisons
 
@@ -75,34 +100,60 @@ Runs: 16 total, 16 successful, 0 failed
 | peak speedup | 0 | 7 |
 | speedup at max cores | 0 | 7 |
 
+
+</details>
+
 ## Intel(R) Core(TM) Ultra X7 358H (x86_64, 16 logical cores)
 
 Runs: 16 total, 16 successful, 0 failed
 
 ### Most efficient (absolute speed)
 
-| Highlight | Setup | Baseline | Best | Run |
-| --- | --- | --- | --- | --- |
-| best overall | openblas-openmp-gil / loky / gil | 8.25s | 1.76s @ n_jobs=16 | [7dafeda5-8947-4f73-b7b3-0f46aafeabe5](results/regression_pipeline_tuning/20260630T121737_7dafeda5-8947-4f73-b7b3-0f46aafeabe5.json) |
-| fastest single-thread baseline | pypi-gil / threading / gil | 7.81s | 7.81s @ n_jobs=1 | [5f771075-b4b8-44a1-8d3b-9528d940fce2](results/regression_pipeline_tuning/20260630T120917_5f771075-b4b8-44a1-8d3b-9528d940fce2.json) |
+| Rank | GIL | Distribution | Joblib backend | BLAS | Baseline | Best | Run |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| #1 | gil | conda-forge | loky | OpenBLAS (Haswell, openmp) | 8.25s | 1.76s @ n_jobs=16 | [7dafeda5-8947-4f73-b7b3-0f46aafeabe5](results/regression_pipeline_tuning/20260630T121737_7dafeda5-8947-4f73-b7b3-0f46aafeabe5.json) |
+| #2 | gil | conda-forge | loky | MKL | 8.53s | 1.76s @ n_jobs=16 | [583d411c-8ccf-4e82-be79-806aedb756e9](results/regression_pipeline_tuning/20260630T122116_583d411c-8ccf-4e82-be79-806aedb756e9.json) |
+| #3 | no-gil | conda-forge | loky | MKL | 10.32s | 2.10s @ n_jobs=16 | [dc92a4d4-3f1b-449f-b999-7aad18f7c8fc](results/regression_pipeline_tuning/20260630T122251_dc92a4d4-3f1b-449f-b999-7aad18f7c8fc.json) |
 
 ### Most efficient (scalability)
 
-| Highlight | Setup | Speedup | Parallel efficiency | Duration | Baseline | Best | Run |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| peak speedup | mkl-freethreading / loky / no-gil | 4.91x | n/a | 2.10s @ n_jobs=16 | 10.32s | 2.10s @ n_jobs=16 | [dc92a4d4-3f1b-449f-b999-7aad18f7c8fc](results/regression_pipeline_tuning/20260630T122251_dc92a4d4-3f1b-449f-b999-7aad18f7c8fc.json) |
-| best peak parallel efficiency | openblas-openmp-freethreading / threading / no-gil | 1.25x | 0.63 | 8.24s @ n_jobs=2 | 10.30s | 8.24s @ n_jobs=2 | [5fffc163-ee00-4640-9d26-b89ab729c80f](results/regression_pipeline_tuning/20260630T121801_5fffc163-ee00-4640-9d26-b89ab729c80f.json) |
-| best max-core parallel efficiency | mkl-freethreading / loky / no-gil | 4.91x | 0.31 | 2.10s @ n_jobs=16 | 10.32s | 2.10s @ n_jobs=16 | [dc92a4d4-3f1b-449f-b999-7aad18f7c8fc](results/regression_pipeline_tuning/20260630T122251_dc92a4d4-3f1b-449f-b999-7aad18f7c8fc.json) |
+| Rank | GIL | Distribution | Joblib backend | BLAS | Speedup | Parallel efficiency | Duration | Baseline | Best | Run |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #1 | no-gil | conda-forge | loky | MKL | 4.91x | 0.31 | 2.10s @ n_jobs=16 | 10.32s | 2.10s @ n_jobs=16 | [dc92a4d4-3f1b-449f-b999-7aad18f7c8fc](results/regression_pipeline_tuning/20260630T122251_dc92a4d4-3f1b-449f-b999-7aad18f7c8fc.json) |
+| #2 | gil | conda-forge | loky | MKL | 4.83x | 0.30 | 1.76s @ n_jobs=16 | 8.53s | 1.76s @ n_jobs=16 | [583d411c-8ccf-4e82-be79-806aedb756e9](results/regression_pipeline_tuning/20260630T122116_583d411c-8ccf-4e82-be79-806aedb756e9.json) |
+| #3 | gil | conda-forge | loky | OpenBLAS (Haswell, openmp) | 4.69x | 0.29 | 1.76s @ n_jobs=16 | 8.25s | 1.76s @ n_jobs=16 | [7dafeda5-8947-4f73-b7b3-0f46aafeabe5](results/regression_pipeline_tuning/20260630T121737_7dafeda5-8947-4f73-b7b3-0f46aafeabe5.json) |
 
 ### Most problematic (lack of scalability)
 
-| Setup | Baseline | Best | Peak speedup | Speedup @ max | Slowdown @ max | Max-core efficiency | Run |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| mkl-freethreading / threading / no-gil | 10.42s | 6.54s @ n_jobs=4 | 1.59x (6.54s @ n_jobs=4) | 0.32x (32.96s @ n_jobs=16) | 3.16x | 0.02 | [7ae1d70f-b9d1-48d0-9a7b-87d432594d1c](results/regression_pipeline_tuning/20260630T122140_7ae1d70f-b9d1-48d0-9a7b-87d432594d1c.json) |
-| openblas-openmp-gil / threading / gil | 8.26s | 8.26s @ n_jobs=1 | 1.00x (8.26s @ n_jobs=1) | 0.32x (25.86s @ n_jobs=16) | 3.13x | 0.02 | [d9b19d91-1ab2-4c9f-a66d-f1502276d58e](results/regression_pipeline_tuning/20260630T121618_d9b19d91-1ab2-4c9f-a66d-f1502276d58e.json) |
-| openblas-openmp-freethreading / threading / no-gil | 10.30s | 8.24s @ n_jobs=2 | 1.25x (8.24s @ n_jobs=2) | 0.34x (30.74s @ n_jobs=16) | 2.98x | 0.02 | [5fffc163-ee00-4640-9d26-b89ab729c80f](results/regression_pipeline_tuning/20260630T121801_5fffc163-ee00-4640-9d26-b89ab729c80f.json) |
-| mkl-gil / threading / gil | 8.71s | 8.71s @ n_jobs=1 | 1.00x (8.71s @ n_jobs=1) | 0.35x (24.77s @ n_jobs=16) | 2.84x | 0.02 | [4e3e99f8-36e2-4edd-8f3c-8fa9c6dd1a0d](results/regression_pipeline_tuning/20260630T121951_4e3e99f8-36e2-4edd-8f3c-8fa9c6dd1a0d.json) |
-| pypi-freethreading / threading / no-gil | 11.31s | 11.31s @ n_jobs=1 | 1.00x (11.31s @ n_jobs=1) | 0.54x (20.94s @ n_jobs=16) | 1.85x | 0.03 | [88cb30e8-bf45-4b01-b3e0-02ea55c05cee](results/regression_pipeline_tuning/20260630T121043_88cb30e8-bf45-4b01-b3e0-02ea55c05cee.json) |
+| Rank | GIL | Distribution | Joblib backend | BLAS | Baseline | Best | Peak speedup | Speedup @ max | Slowdown @ max | Max-core efficiency | Run |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #1 | no-gil | conda-forge | threading | MKL | 10.42s | 6.54s @ n_jobs=4 | 1.59x (6.54s @ n_jobs=4) | 0.32x (32.96s @ n_jobs=16) | 3.16x | 0.02 | [7ae1d70f-b9d1-48d0-9a7b-87d432594d1c](results/regression_pipeline_tuning/20260630T122140_7ae1d70f-b9d1-48d0-9a7b-87d432594d1c.json) |
+| #2 | gil | conda-forge | threading | OpenBLAS (Haswell, openmp) | 8.26s | 8.26s @ n_jobs=1 | 1.00x (8.26s @ n_jobs=1) | 0.32x (25.86s @ n_jobs=16) | 3.13x | 0.02 | [d9b19d91-1ab2-4c9f-a66d-f1502276d58e](results/regression_pipeline_tuning/20260630T121618_d9b19d91-1ab2-4c9f-a66d-f1502276d58e.json) |
+| #3 | no-gil | conda-forge | threading | OpenBLAS (Haswell, openmp) | 10.30s | 8.24s @ n_jobs=2 | 1.25x (8.24s @ n_jobs=2) | 0.34x (30.74s @ n_jobs=16) | 2.98x | 0.02 | [5fffc163-ee00-4640-9d26-b89ab729c80f](results/regression_pipeline_tuning/20260630T121801_5fffc163-ee00-4640-9d26-b89ab729c80f.json) |
+
+<details>
+<summary>Full results and GIL vs free-threading comparisons</summary>
+
+### All runs
+
+| GIL | Distribution | Joblib backend | BLAS | Baseline | Best | Peak speedup | Speedup @ max | Peak parallel efficiency | Max-core parallel efficiency | Slowdown @ max | Run |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| no-gil | conda-forge | loky | MKL | 10.32s | 2.10s @ n_jobs=16 | 4.91x (2.10s @ n_jobs=16) | 4.91x (2.10s @ n_jobs=16) | 0.31 | 0.31 | 0.20x | [dc92a4d4-3f1b-449f-b999-7aad18f7c8fc](results/regression_pipeline_tuning/20260630T122251_dc92a4d4-3f1b-449f-b999-7aad18f7c8fc.json) |
+| no-gil | conda-forge | threading | MKL | 10.42s | 6.54s @ n_jobs=4 | 1.59x (6.54s @ n_jobs=4) | 0.32x (32.96s @ n_jobs=16) | 0.40 | 0.02 | 3.16x | [7ae1d70f-b9d1-48d0-9a7b-87d432594d1c](results/regression_pipeline_tuning/20260630T122140_7ae1d70f-b9d1-48d0-9a7b-87d432594d1c.json) |
+| gil | conda-forge | loky | MKL | 8.53s | 1.76s @ n_jobs=16 | 4.83x (1.76s @ n_jobs=16) | 4.83x (1.76s @ n_jobs=16) | 0.30 | 0.30 | 0.21x | [583d411c-8ccf-4e82-be79-806aedb756e9](results/regression_pipeline_tuning/20260630T122116_583d411c-8ccf-4e82-be79-806aedb756e9.json) |
+| gil | conda-forge | threading | MKL | 8.71s | 8.71s @ n_jobs=1 | 1.00x (8.71s @ n_jobs=1) | 0.35x (24.77s @ n_jobs=16) | 1.00 | 0.02 | 2.84x | [4e3e99f8-36e2-4edd-8f3c-8fa9c6dd1a0d](results/regression_pipeline_tuning/20260630T121951_4e3e99f8-36e2-4edd-8f3c-8fa9c6dd1a0d.json) |
+| no-gil | conda-forge | loky | OpenBLAS (Haswell, openmp) | 10.18s | 2.74s @ n_jobs=8 | 3.72x (2.74s @ n_jobs=8) | 3.01x (3.39s @ n_jobs=16) | 0.46 | 0.19 | 0.33x | [d353ceb2-b6ff-496d-bbb5-1ca0fc9f1639](results/regression_pipeline_tuning/20260630T121920_d353ceb2-b6ff-496d-bbb5-1ca0fc9f1639.json) |
+| no-gil | conda-forge | threading | OpenBLAS (Haswell, openmp) | 10.30s | 8.24s @ n_jobs=2 | 1.25x (8.24s @ n_jobs=2) | 0.34x (30.74s @ n_jobs=16) | 0.63 | 0.02 | 2.98x | [5fffc163-ee00-4640-9d26-b89ab729c80f](results/regression_pipeline_tuning/20260630T121801_5fffc163-ee00-4640-9d26-b89ab729c80f.json) |
+| gil | conda-forge | loky | OpenBLAS (Haswell, openmp) | 8.25s | 1.76s @ n_jobs=16 | 4.69x (1.76s @ n_jobs=16) | 4.69x (1.76s @ n_jobs=16) | 0.29 | 0.29 | 0.21x | [7dafeda5-8947-4f73-b7b3-0f46aafeabe5](results/regression_pipeline_tuning/20260630T121737_7dafeda5-8947-4f73-b7b3-0f46aafeabe5.json) |
+| gil | conda-forge | threading | OpenBLAS (Haswell, openmp) | 8.26s | 8.26s @ n_jobs=1 | 1.00x (8.26s @ n_jobs=1) | 0.32x (25.86s @ n_jobs=16) | 1.00 | 0.02 | 3.13x | [d9b19d91-1ab2-4c9f-a66d-f1502276d58e](results/regression_pipeline_tuning/20260630T121618_d9b19d91-1ab2-4c9f-a66d-f1502276d58e.json) |
+| no-gil | conda-forge | loky | OpenBLAS (Haswell, pthreads) | 12.29s | 3.27s @ n_jobs=16 | 3.76x (3.27s @ n_jobs=16) | 3.76x (3.27s @ n_jobs=16) | 0.23 | 0.23 | 0.27x | [5bcea684-297c-4924-88cf-f032efe74b87](results/regression_pipeline_tuning/20260630T121540_5bcea684-297c-4924-88cf-f032efe74b87.json) |
+| no-gil | conda-forge | threading | OpenBLAS (Haswell, pthreads) | 12.19s | 12.19s @ n_jobs=1 | 1.00x (12.19s @ n_jobs=1) | 0.55x (22.24s @ n_jobs=16) | 1.00 | 0.03 | 1.82x | [0c0bf7a7-b8ca-4feb-9050-fe8af0363464](results/regression_pipeline_tuning/20260630T121418_0c0bf7a7-b8ca-4feb-9050-fe8af0363464.json) |
+| gil | conda-forge | loky | OpenBLAS (Haswell, pthreads) | 10.57s | 2.85s @ n_jobs=16 | 3.71x (2.85s @ n_jobs=16) | 3.71x (2.85s @ n_jobs=16) | 0.23 | 0.23 | 0.27x | [888ff5a2-cecd-492b-bc39-61d1969ed2c3](results/regression_pipeline_tuning/20260630T121345_888ff5a2-cecd-492b-bc39-61d1969ed2c3.json) |
+| gil | conda-forge | threading | OpenBLAS (Haswell, pthreads) | 10.34s | 10.34s @ n_jobs=1 | 1.00x (10.34s @ n_jobs=1) | 0.66x (15.68s @ n_jobs=16) | 1.00 | 0.04 | 1.52x | [fcfa8ee5-cacb-4f57-ac7c-77936d89267a](results/regression_pipeline_tuning/20260630T121237_fcfa8ee5-cacb-4f57-ac7c-77936d89267a.json) |
+| no-gil | pypi | loky | OpenBLAS (Haswell, pthreads) | 12.26s | 3.20s @ n_jobs=16 | 3.84x (3.20s @ n_jobs=16) | 3.84x (3.20s @ n_jobs=16) | 0.24 | 0.24 | 0.26x | [73ece25f-309b-4bed-a825-715ff20d2c73](results/regression_pipeline_tuning/20260630T121158_73ece25f-309b-4bed-a825-715ff20d2c73.json) |
+| no-gil | pypi | threading | OpenBLAS (Haswell, pthreads) | 11.31s | 11.31s @ n_jobs=1 | 1.00x (11.31s @ n_jobs=1) | 0.54x (20.94s @ n_jobs=16) | 1.00 | 0.03 | 1.85x | [88cb30e8-bf45-4b01-b3e0-02ea55c05cee](results/regression_pipeline_tuning/20260630T121043_88cb30e8-bf45-4b01-b3e0-02ea55c05cee.json) |
+| gil | pypi | loky | OpenBLAS (Haswell, pthreads) | 10.34s | 2.42s @ n_jobs=16 | 4.27x (2.42s @ n_jobs=16) | 4.27x (2.42s @ n_jobs=16) | 0.27 | 0.27 | 0.23x | [fa2454ef-cd46-4d37-996e-3b0cd4efc760](results/regression_pipeline_tuning/20260630T121011_fa2454ef-cd46-4d37-996e-3b0cd4efc760.json) |
+| gil | pypi | threading | OpenBLAS (Haswell, pthreads) | 7.81s | 7.81s @ n_jobs=1 | 1.00x (7.81s @ n_jobs=1) | 0.56x (14.01s @ n_jobs=16) | 1.00 | 0.03 | 1.79x | [5f771075-b4b8-44a1-8d3b-9528d940fce2](results/regression_pipeline_tuning/20260630T120917_5f771075-b4b8-44a1-8d3b-9528d940fce2.json) |
 
 ### GIL vs free-threading comparisons
 
@@ -149,4 +200,7 @@ Runs: 16 total, 16 successful, 0 failed
 | best duration | 6 | 2 |
 | peak speedup | 2 | 4 |
 | speedup at max cores | 5 | 3 |
+
+
+</details>
 

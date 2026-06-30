@@ -57,12 +57,38 @@ class GilComparison:
     freethreading_run: RunAnalysis | None
 
 
+@dataclass(frozen=True)
+class BlasInfo:
+    implementation: str | None
+    openblas_coretype: str | None
+    openblas_threading_layer: str | None
+
+    def label(self) -> str:
+        if self.implementation is None:
+            return "n/a"
+        if self.implementation == "OpenBLAS":
+            details = [
+                detail
+                for detail in (
+                    self.openblas_coretype,
+                    self.openblas_threading_layer,
+                )
+                if detail
+            ]
+            if details:
+                return f"OpenBLAS ({', '.join(details)})"
+            return "OpenBLAS"
+        return self.implementation
+
+
 @dataclass
 class RunAnalysis:
     run_id: str
     results_file: str
     hardware: HardwareKey
     setup: SetupKey
+    distribution: str | None
+    blas: BlasInfo
     baseline_duration_s: float | None
     best_duration_s: float | None
     best_n_jobs: int | None
@@ -81,6 +107,54 @@ class RunAnalysis:
     def setup_label(self) -> str:
         return self.setup.label()
 
+    @property
+    def sort_key(self) -> tuple:
+        return (
+            self.distribution or "",
+            stack_family(self.setup.pixi_environment) or "",
+            self.setup.pixi_environment or "",
+            self.setup.joblib_backend or "",
+            0 if self.setup.gil_enabled else 1 if self.setup.gil_enabled is False else 2,
+        )
+
+
+RUN_CONFIG_HEADERS = ["GIL", "Distribution", "Joblib backend"]
+
+
+def distribution_from_record(record: dict) -> str | None:
+    packages = record.get("system", {}).get("packages", {})
+    numpy_info = packages.get("numpy", {})
+    channel = numpy_info.get("channel")
+    if channel == "pypi.org":
+        return "pypi"
+    if channel == "conda-forge":
+        return "conda-forge"
+    return channel
+
+
+def fmt_gil(gil_enabled: bool | None) -> str:
+    if gil_enabled is True:
+        return "gil"
+    if gil_enabled is False:
+        return "no-gil"
+    return "n/a"
+
+
+def fmt_distribution(distribution: str | None) -> str:
+    return distribution or "n/a"
+
+
+def fmt_joblib_backend(joblib_backend: str | None) -> str:
+    return joblib_backend or "n/a"
+
+
+def run_config_columns(run: RunAnalysis) -> list[str]:
+    return [
+        fmt_gil(run.setup.gil_enabled),
+        fmt_distribution(run.distribution),
+        fmt_joblib_backend(run.setup.joblib_backend),
+    ]
+
 
 def hardware_key(record: dict) -> HardwareKey:
     cpu = record["system"]["cpu"]
@@ -96,6 +170,49 @@ def setup_key(record: dict) -> SetupKey:
         pixi_environment=record["system"]["pixi"].get("environment"),
         joblib_backend=record["run"].get("joblib_backend"),
         gil_enabled=record["system"]["python"].get("gil_enabled"),
+    )
+
+
+def blas_info_from_record(record: dict) -> BlasInfo:
+    libraries = record.get("system", {}).get("threadpool_libraries", [])
+    blas_libraries = [
+        library for library in libraries if library.get("user_api") == "blas"
+    ]
+    if not blas_libraries:
+        return BlasInfo(
+            implementation=None,
+            openblas_coretype=None,
+            openblas_threading_layer=None,
+        )
+
+    library = blas_libraries[0]
+    internal_api = library.get("internal_api")
+    coretype = library.get("architecture")
+    threading_layer = library.get("threading_layer")
+
+    if internal_api == "newaccelerate":
+        return BlasInfo(
+            implementation="Accelerate",
+            openblas_coretype=None,
+            openblas_threading_layer=None,
+        )
+    if internal_api == "mkl":
+        return BlasInfo(
+            implementation="MKL",
+            openblas_coretype=None,
+            openblas_threading_layer=None,
+        )
+    if internal_api == "openblas":
+        return BlasInfo(
+            implementation="OpenBLAS",
+            openblas_coretype=coretype,
+            openblas_threading_layer=threading_layer,
+        )
+
+    return BlasInfo(
+        implementation=internal_api,
+        openblas_coretype=coretype,
+        openblas_threading_layer=threading_layer,
     )
 
 
@@ -149,6 +266,8 @@ def analyze_record(record: dict) -> RunAnalysis:
     timings = successful_timings(record)
     hardware = hardware_key(record)
     setup = setup_key(record)
+    distribution = distribution_from_record(record)
+    blas = blas_info_from_record(record)
 
     if not timings:
         return RunAnalysis(
@@ -156,6 +275,8 @@ def analyze_record(record: dict) -> RunAnalysis:
             results_file=record.get("results_file", ""),
             hardware=hardware,
             setup=setup,
+            distribution=distribution,
+            blas=blas,
             baseline_duration_s=None,
             best_duration_s=None,
             best_n_jobs=None,
@@ -219,6 +340,8 @@ def analyze_record(record: dict) -> RunAnalysis:
         results_file=record.get("results_file", ""),
         hardware=hardware,
         setup=setup,
+        distribution=distribution,
+        blas=blas,
         baseline_duration_s=baseline_duration_s,
         best_duration_s=best_duration_s,
         best_n_jobs=best_n_jobs,
@@ -243,11 +366,40 @@ def load_results(results_dir: Path) -> list[dict]:
     return records
 
 
+def setup_hardware_key(record: dict) -> tuple[HardwareKey, SetupKey]:
+    return (hardware_key(record), setup_key(record))
+
+
+def record_recency_key(record: dict) -> tuple[str, str]:
+    timestamp = record.get("completed_at") or record.get("recorded_at") or ""
+    return (timestamp, record.get("results_file", ""))
+
+
+def dedupe_records(records: list[dict]) -> tuple[list[dict], int]:
+    """Keep the most recent result for each hardware/setup combination."""
+    latest: dict[tuple[HardwareKey, SetupKey], dict] = {}
+    latest_recency: dict[tuple[HardwareKey, SetupKey], tuple[str, str]] = {}
+
+    for record in records:
+        key = setup_hardware_key(record)
+        recency = record_recency_key(record)
+        if key not in latest or recency > latest_recency[key]:
+            latest[key] = record
+            latest_recency[key] = recency
+
+    deduped = list(latest.values())
+    return deduped, len(records) - len(deduped)
+
+
 def group_by_hardware(analyses: list[RunAnalysis]) -> dict[HardwareKey, list[RunAnalysis]]:
     grouped: dict[HardwareKey, list[RunAnalysis]] = {}
     for analysis in analyses:
         grouped.setdefault(analysis.hardware, []).append(analysis)
     return grouped
+
+
+def fmt_blas(blas: BlasInfo) -> str:
+    return blas.label()
 
 
 def fmt_seconds(value: float | None) -> str:
@@ -595,6 +747,143 @@ def report_gil_comparisons(runs: list[RunAnalysis]) -> list[str]:
     return lines
 
 
+def report_full_results_table(
+    runs: list[RunAnalysis],
+    results_dir: Path,
+) -> list[str]:
+    rows: list[list[str]] = []
+    for run in sorted(runs, key=lambda item: item.sort_key):
+        if run.failed:
+            continue
+        rows.append(
+            [
+                *run_config_columns(run),
+                fmt_blas(run.blas),
+                fmt_seconds(run.baseline_duration_s),
+                fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs),
+                f"{fmt_speedup(run.peak_speedup)} "
+                f"({fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs)})",
+                f"{fmt_speedup(run.speedup_at_max_n_jobs)} "
+                f"({fmt_duration_at_n_jobs(run.max_duration_s, run.max_n_jobs)})",
+                fmt_ratio(run.parallel_efficiency_at_peak),
+                fmt_ratio(run.parallel_efficiency_at_max),
+                f"{fmt_ratio(run.slowdown_at_max)}x",
+                run_reference(run, results_dir),
+            ]
+        )
+
+    if not rows:
+        return []
+
+    return [
+        "### All runs",
+        "",
+        md_table(
+            [
+                *RUN_CONFIG_HEADERS,
+                "BLAS",
+                "Baseline",
+                "Best",
+                "Peak speedup",
+                "Speedup @ max",
+                "Peak parallel efficiency",
+                "Max-core parallel efficiency",
+                "Slowdown @ max",
+                "Run",
+            ],
+            rows,
+        ),
+        "",
+    ]
+
+
+def md_details(summary: str, body_lines: list[str]) -> list[str]:
+    if not body_lines:
+        return []
+    return [
+        "<details>",
+        f"<summary>{summary}</summary>",
+        "",
+        *body_lines,
+        "",
+        "</details>",
+        "",
+    ]
+
+
+TOP_N = 3
+
+
+def top_runs(
+    runs: list[RunAnalysis],
+    key,
+    *,
+    reverse: bool = False,
+    limit: int = TOP_N,
+) -> list[RunAnalysis]:
+    return sorted(runs, key=key, reverse=reverse)[:limit]
+
+
+def absolute_speed_row(
+    rank: int,
+    run: RunAnalysis,
+    results_dir: Path,
+) -> list[str]:
+    return [
+        f"#{rank}",
+        *run_config_columns(run),
+        fmt_blas(run.blas),
+        fmt_seconds(run.baseline_duration_s),
+        fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs),
+        run_reference(run, results_dir),
+    ]
+
+
+def scalability_row(
+    rank: int,
+    run: RunAnalysis,
+    results_dir: Path,
+) -> list[str]:
+    return [
+        f"#{rank}",
+        *run_config_columns(run),
+        fmt_blas(run.blas),
+        fmt_speedup(run.peak_speedup),
+        fmt_ratio(run.parallel_efficiency_at_peak),
+        fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs),
+        fmt_seconds(run.baseline_duration_s),
+        fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs),
+        run_reference(run, results_dir),
+    ]
+
+
+def problematic_row(rank: int, run: RunAnalysis, results_dir: Path) -> list[str]:
+    return [
+        f"#{rank}",
+        *run_config_columns(run),
+        fmt_blas(run.blas),
+        fmt_seconds(run.baseline_duration_s),
+        fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs),
+        f"{fmt_speedup(run.peak_speedup)} "
+        f"({fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs)})",
+        f"{fmt_speedup(run.speedup_at_max_n_jobs)} "
+        f"({fmt_duration_at_n_jobs(run.max_duration_s, run.max_n_jobs)})",
+        f"{fmt_ratio(run.slowdown_at_max)}x",
+        fmt_ratio(run.parallel_efficiency_at_max),
+        run_reference(run, results_dir),
+    ]
+
+
+def problematic_sort_key(run: RunAnalysis) -> tuple:
+    return (
+        run.speedup_at_max_n_jobs if run.speedup_at_max_n_jobs is not None else 999,
+        -(run.slowdown_at_max or 0),
+        run.parallel_efficiency_at_max
+        if run.parallel_efficiency_at_max is not None
+        else 999,
+    )
+
+
 def report_hardware(
     hardware: HardwareKey,
     runs: list[RunAnalysis],
@@ -617,8 +906,8 @@ def report_hardware(
             lines.extend(["", "### Failed setups", ""])
             lines.append(
                 md_table(
-                    ["Setup", "Results file"],
-                    [[run.setup_label, results_file_link(
+                    [*RUN_CONFIG_HEADERS, "Results file"],
+                    [[*run_config_columns(run), results_file_link(
                         run.results_file, results_dir, text=run.results_file
                     )] for run in failed],
                 )
@@ -626,53 +915,23 @@ def report_hardware(
         lines.append("")
         return lines
 
-    fastest = min(successful, key=lambda run: run.best_duration_s or float("inf"))
-    fastest_baseline = min(
-        successful, key=lambda run: run.baseline_duration_s or float("inf")
-    )
-    best_peak_speedup = max(
-        successful, key=lambda run: run.peak_speedup or float("-inf")
-    )
-    scalable = [
-        run
-        for run in successful
-        if (run.peak_speedup or 0) > 1.05 and (run.peak_speedup_n_jobs or 0) > 1
-    ]
-    scalable_at_max = [
-        run
-        for run in successful
-        if (run.speedup_at_max_n_jobs or 0) > 1.05 and (run.max_n_jobs or 0) > 1
-    ]
-
     absolute_rows = [
-        [
-            "best overall",
-            fastest.setup_label,
-            fmt_seconds(fastest.baseline_duration_s),
-            fmt_duration_at_n_jobs(fastest.best_duration_s, fastest.best_n_jobs),
-            run_reference(fastest, results_dir),
-        ]
-    ]
-    if fastest.run_id != fastest_baseline.run_id:
-        absolute_rows.append(
-            [
-                "fastest single-thread baseline",
-                fastest_baseline.setup_label,
-                fmt_seconds(fastest_baseline.baseline_duration_s),
-                fmt_duration_at_n_jobs(
-                    fastest_baseline.best_duration_s,
-                    fastest_baseline.best_n_jobs,
-                ),
-                run_reference(fastest_baseline, results_dir),
-            ]
+        absolute_speed_row(rank, run, results_dir)
+        for rank, run in enumerate(
+            top_runs(
+                successful,
+                lambda item: item.best_duration_s or float("inf"),
+            ),
+            start=1,
         )
+    ]
 
     lines.extend(
         [
             "### Most efficient (absolute speed)",
             "",
             md_table(
-                ["Highlight", "Setup", "Baseline", "Best", "Run"],
+                ["Rank", *RUN_CONFIG_HEADERS, "BLAS", "Baseline", "Best", "Run"],
                 absolute_rows,
             ),
             "",
@@ -680,69 +939,16 @@ def report_hardware(
     )
 
     scalability_rows = [
-        [
-            "peak speedup",
-            best_peak_speedup.setup_label,
-            fmt_speedup(best_peak_speedup.peak_speedup),
-            "n/a",
-            fmt_duration_at_n_jobs(
-                best_peak_speedup.peak_duration_s,
-                best_peak_speedup.peak_speedup_n_jobs,
+        scalability_row(rank, run, results_dir)
+        for rank, run in enumerate(
+            top_runs(
+                successful,
+                lambda item: item.peak_speedup or float("-inf"),
+                reverse=True,
             ),
-            fmt_seconds(best_peak_speedup.baseline_duration_s),
-            fmt_duration_at_n_jobs(
-                best_peak_speedup.best_duration_s,
-                best_peak_speedup.best_n_jobs,
-            ),
-            run_reference(best_peak_speedup, results_dir),
-        ]
+            start=1,
+        )
     ]
-    if scalable:
-        best_peak_efficiency = max(
-            scalable,
-            key=lambda run: run.parallel_efficiency_at_peak or float("-inf"),
-        )
-        scalability_rows.append(
-            [
-                "best peak parallel efficiency",
-                best_peak_efficiency.setup_label,
-                fmt_speedup(best_peak_efficiency.peak_speedup),
-                fmt_ratio(best_peak_efficiency.parallel_efficiency_at_peak),
-                fmt_duration_at_n_jobs(
-                    best_peak_efficiency.peak_duration_s,
-                    best_peak_efficiency.peak_speedup_n_jobs,
-                ),
-                fmt_seconds(best_peak_efficiency.baseline_duration_s),
-                fmt_duration_at_n_jobs(
-                    best_peak_efficiency.best_duration_s,
-                    best_peak_efficiency.best_n_jobs,
-                ),
-                run_reference(best_peak_efficiency, results_dir),
-            ]
-        )
-    if scalable_at_max:
-        best_max_efficiency = max(
-            scalable_at_max,
-            key=lambda run: run.parallel_efficiency_at_max or float("-inf"),
-        )
-        scalability_rows.append(
-            [
-                "best max-core parallel efficiency",
-                best_max_efficiency.setup_label,
-                fmt_speedup(best_max_efficiency.speedup_at_max_n_jobs),
-                fmt_ratio(best_max_efficiency.parallel_efficiency_at_max),
-                fmt_duration_at_n_jobs(
-                    best_max_efficiency.max_duration_s,
-                    best_max_efficiency.max_n_jobs,
-                ),
-                fmt_seconds(best_max_efficiency.baseline_duration_s),
-                fmt_duration_at_n_jobs(
-                    best_max_efficiency.best_duration_s,
-                    best_max_efficiency.best_n_jobs,
-                ),
-                run_reference(best_max_efficiency, results_dir),
-            ]
-        )
 
     lines.extend(
         [
@@ -750,8 +956,9 @@ def report_hardware(
             "",
             md_table(
                 [
-                    "Highlight",
-                    "Setup",
+                    "Rank",
+                    *RUN_CONFIG_HEADERS,
+                    "BLAS",
                     "Speedup",
                     "Parallel efficiency",
                     "Duration",
@@ -765,52 +972,13 @@ def report_hardware(
         ]
     )
 
-    problematic = sorted(
-        successful,
-        key=lambda run: (
-            run.speedup_at_max_n_jobs if run.speedup_at_max_n_jobs is not None else 999,
-            -(run.slowdown_at_max or 0),
-            run.parallel_efficiency_at_max
-            if run.parallel_efficiency_at_max is not None
-            else 999,
-        ),
-    )
-
-    problematic_rows: list[list[str]] = []
-    shown = 0
-    for run in problematic:
-        if shown >= 5:
-            break
-        peak = run.peak_speedup or 0
-        at_max = run.speedup_at_max_n_jobs or 0
-        slowdown = run.slowdown_at_max or 1
-        low_max_core_efficiency = (
-            run.parallel_efficiency_at_max is not None
-            and run.parallel_efficiency_at_max < 0.15
+    problematic_rows = [
+        problematic_row(rank, run, results_dir)
+        for rank, run in enumerate(
+            sorted(successful, key=problematic_sort_key)[:TOP_N],
+            start=1,
         )
-        is_problematic = (
-            at_max < 1.0
-            or low_max_core_efficiency
-            or slowdown >= 1.25
-            or (peak > 1.05 and at_max < 0.75 * peak)
-        )
-        if not is_problematic and shown >= 3:
-            continue
-        shown += 1
-        problematic_rows.append(
-            [
-                run.setup_label,
-                fmt_seconds(run.baseline_duration_s),
-                fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs),
-                f"{fmt_speedup(run.peak_speedup)} "
-                f"({fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs)})",
-                f"{fmt_speedup(run.speedup_at_max_n_jobs)} "
-                f"({fmt_duration_at_n_jobs(run.max_duration_s, run.max_n_jobs)})",
-                f"{fmt_ratio(run.slowdown_at_max)}x",
-                fmt_ratio(run.parallel_efficiency_at_max),
-                run_reference(run, results_dir),
-            ]
-        )
+    ]
 
     lines.append("### Most problematic (lack of scalability)")
     lines.append("")
@@ -818,7 +986,9 @@ def report_hardware(
         lines.append(
             md_table(
                 [
-                    "Setup",
+                    "Rank",
+                    *RUN_CONFIG_HEADERS,
+                    "BLAS",
                     "Baseline",
                     "Best",
                     "Peak speedup",
@@ -834,7 +1004,15 @@ def report_hardware(
         lines.append("No clearly problematic setups detected.")
     lines.append("")
 
-    lines.extend(report_gil_comparisons(runs))
+    details_body = report_full_results_table(runs, results_dir)
+    details_body.extend(report_gil_comparisons(runs))
+    if details_body:
+        lines.extend(
+            md_details(
+                "Full results and GIL vs free-threading comparisons",
+                details_body,
+            )
+        )
 
     if failed:
         lines.extend(
@@ -842,8 +1020,8 @@ def report_hardware(
                 "### Failed setups (excluded from rankings)",
                 "",
                 md_table(
-                    ["Setup", "Results file"],
-                    [[run.setup_label, results_file_link(
+                    [*RUN_CONFIG_HEADERS, "Results file"],
+                    [[*run_config_columns(run), results_file_link(
                         run.results_file, results_dir, text=run.results_file
                     )] for run in failed],
                 ),
@@ -867,6 +1045,13 @@ def analysis_to_dict(analysis: RunAnalysis) -> dict:
             "pixi_environment": analysis.setup.pixi_environment,
             "joblib_backend": analysis.setup.joblib_backend,
             "gil_enabled": analysis.setup.gil_enabled,
+        },
+        "distribution": analysis.distribution,
+        "blas": {
+            "implementation": analysis.blas.implementation,
+            "openblas_coretype": analysis.blas.openblas_coretype,
+            "openblas_threading_layer": analysis.blas.openblas_threading_layer,
+            "label": analysis.blas.label(),
         },
         "baseline_duration_s": analysis.baseline_duration_s,
         "best_duration_s": analysis.best_duration_s,
@@ -913,6 +1098,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"No JSON results found in {args.results_dir}", file=sys.stderr)
         return 1
 
+    raw_count = len(records)
+    records, duplicates_skipped = dedupe_records(records)
+
     analyses = [analyze_record(record) for record in records]
     grouped = group_by_hardware(analyses)
 
@@ -922,7 +1110,7 @@ def main(argv: list[str] | None = None) -> int:
             payload[hardware.label()] = {
                 "runs": [
                     analysis_to_dict(analysis)
-                    for analysis in sorted(runs, key=lambda run: run.setup_label)
+                    for analysis in sorted(runs, key=lambda run: run.sort_key)
                 ],
                 "gil_comparisons": [
                     gil_comparison_to_dict(comparison)
@@ -933,10 +1121,20 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write("\n")
         return 0
 
+    loaded_message = (
+        f"Loaded {raw_count} result file(s) from `{args.results_dir}`"
+        + (
+            f", kept {len(records)} after deduplicating "
+            f"{duplicates_skipped} older run(s) with the same hardware/setup."
+            if duplicates_skipped
+            else "."
+        )
+    )
+
     report_lines = [
         "# Regression pipeline tuning results",
         "",
-        f"Loaded {len(records)} result file(s) from `{args.results_dir}`.",
+        loaded_message,
         "",
     ]
     for hardware in sorted(grouped, key=lambda key: key.label()):
