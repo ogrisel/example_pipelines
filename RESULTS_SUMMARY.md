@@ -14,6 +14,14 @@ Runs: 16 total, 16 successful, 0 failed
 | #2 | no-gil | conda-forge | loky | Accelerate | 12.86s | 6.49s @ n_jobs=8 | [5d87765a-ea1a-46bf-b42f-ff5992a03af4](results/regression_pipeline_tuning/20260630T113718_5d87765a-ea1a-46bf-b42f-ff5992a03af4.json) |
 | #3 | no-gil | pypi | loky | Accelerate | 12.63s | 6.64s @ n_jobs=8 | [b18fc4f7-d7e6-4d79-91d0-27d330255d5b](results/regression_pipeline_tuning/20260630T110907_b18fc4f7-d7e6-4d79-91d0-27d330255d5b.json) |
 
+### Slowest (absolute duration at any n_jobs)
+
+| Rank | GIL | Distribution | Joblib backend | BLAS | Duration | Run |
+| --- | --- | --- | --- | --- | --- | --- |
+| #1 | no-gil | conda-forge | loky | OpenBLAS (VORTEX, pthreads) | 180.55s @ n_jobs=1 | [8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0](results/regression_pipeline_tuning/20260630T112653_8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0.json) |
+| #2 | no-gil | conda-forge | threading | OpenBLAS (VORTEX, pthreads) | 161.83s @ n_jobs=1 | [1cee5a9e-5a45-4275-b11d-5a65bb8029b8](results/regression_pipeline_tuning/20260630T112001_1cee5a9e-5a45-4275-b11d-5a65bb8029b8.json) |
+| #3 | gil | conda-forge | loky | OpenBLAS (VORTEX, pthreads) | 159.49s @ n_jobs=1 | [3809d58b-398a-49af-9d50-52734d23fdfc](results/regression_pipeline_tuning/20260630T111559_3809d58b-398a-49af-9d50-52734d23fdfc.json) |
+
 ### Most efficient (scalability)
 
 | Rank | GIL | Distribution | Joblib backend | BLAS | Speedup | Parallel efficiency | Duration | Baseline | Best | Run |
@@ -114,6 +122,14 @@ Runs: 16 total, 16 successful, 0 failed
 | #1 | gil | conda-forge | loky | OpenBLAS (Haswell, openmp) | 8.25s | 1.76s @ n_jobs=16 | [7dafeda5-8947-4f73-b7b3-0f46aafeabe5](results/regression_pipeline_tuning/20260630T121737_7dafeda5-8947-4f73-b7b3-0f46aafeabe5.json) |
 | #2 | gil | conda-forge | loky | MKL | 8.53s | 1.76s @ n_jobs=16 | [583d411c-8ccf-4e82-be79-806aedb756e9](results/regression_pipeline_tuning/20260630T122116_583d411c-8ccf-4e82-be79-806aedb756e9.json) |
 | #3 | no-gil | conda-forge | loky | MKL | 10.32s | 2.10s @ n_jobs=16 | [dc92a4d4-3f1b-449f-b999-7aad18f7c8fc](results/regression_pipeline_tuning/20260630T122251_dc92a4d4-3f1b-449f-b999-7aad18f7c8fc.json) |
+
+### Slowest (absolute duration at any n_jobs)
+
+| Rank | GIL | Distribution | Joblib backend | BLAS | Duration | Run |
+| --- | --- | --- | --- | --- | --- | --- |
+| #1 | no-gil | conda-forge | threading | MKL | 32.96s @ n_jobs=16 | [7ae1d70f-b9d1-48d0-9a7b-87d432594d1c](results/regression_pipeline_tuning/20260630T122140_7ae1d70f-b9d1-48d0-9a7b-87d432594d1c.json) |
+| #2 | no-gil | conda-forge | threading | OpenBLAS (Haswell, openmp) | 30.74s @ n_jobs=16 | [5fffc163-ee00-4640-9d26-b89ab729c80f](results/regression_pipeline_tuning/20260630T121801_5fffc163-ee00-4640-9d26-b89ab729c80f.json) |
+| #3 | gil | conda-forge | threading | OpenBLAS (Haswell, openmp) | 25.86s @ n_jobs=16 | [d9b19d91-1ab2-4c9f-a66d-f1502276d58e](results/regression_pipeline_tuning/20260630T121618_d9b19d91-1ab2-4c9f-a66d-f1502276d58e.json) |
 
 ### Most efficient (scalability)
 

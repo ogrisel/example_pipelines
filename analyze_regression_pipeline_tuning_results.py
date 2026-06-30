@@ -102,6 +102,7 @@ class RunAnalysis:
     parallel_efficiency_at_max: float | None
     slowdown_at_max: float | None
     failed: bool
+    timing_points: list[tuple[int, float]]
 
     @property
     def setup_label(self) -> str:
@@ -290,6 +291,7 @@ def analyze_record(record: dict) -> RunAnalysis:
             parallel_efficiency_at_max=None,
             slowdown_at_max=None,
             failed=True,
+            timing_points=[],
         )
 
     baseline = next((t for t in timings if t["n_jobs"] == 1), timings[0])
@@ -355,6 +357,9 @@ def analyze_record(record: dict) -> RunAnalysis:
         parallel_efficiency_at_max=parallel_efficiency_at_max,
         slowdown_at_max=slowdown_at_max,
         failed=False,
+        timing_points=[
+            (timing["n_jobs"], timing["duration_s"]) for timing in timings
+        ],
     )
 
 
@@ -814,6 +819,27 @@ def md_details(summary: str, body_lines: list[str]) -> list[str]:
 TOP_N = 3
 
 
+@dataclass(frozen=True)
+class SlowestTiming:
+    run: RunAnalysis
+    n_jobs: int
+    duration_s: float
+
+
+def collect_slowest_timings(
+    runs: list[RunAnalysis],
+    *,
+    limit: int = TOP_N,
+) -> list[SlowestTiming]:
+    points = [
+        SlowestTiming(run=run, n_jobs=n_jobs, duration_s=duration_s)
+        for run in runs
+        if not run.failed
+        for n_jobs, duration_s in run.timing_points
+    ]
+    return sorted(points, key=lambda point: point.duration_s, reverse=True)[:limit]
+
+
 def top_runs(
     runs: list[RunAnalysis],
     key,
@@ -854,6 +880,20 @@ def scalability_row(
         fmt_seconds(run.baseline_duration_s),
         fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs),
         run_reference(run, results_dir),
+    ]
+
+
+def slowest_timing_row(
+    rank: int,
+    point: SlowestTiming,
+    results_dir: Path,
+) -> list[str]:
+    return [
+        f"#{rank}",
+        *run_config_columns(point.run),
+        fmt_blas(point.run.blas),
+        fmt_duration_at_n_jobs(point.duration_s, point.n_jobs),
+        run_reference(point.run, results_dir),
     ]
 
 
@@ -926,17 +966,10 @@ def report_hardware(
         )
     ]
 
-    lines.extend(
-        [
-            "### Most efficient (absolute speed)",
-            "",
-            md_table(
-                ["Rank", *RUN_CONFIG_HEADERS, "BLAS", "Baseline", "Best", "Run"],
-                absolute_rows,
-            ),
-            "",
-        ]
-    )
+    slowest_rows = [
+        slowest_timing_row(rank, point, results_dir)
+        for rank, point in enumerate(collect_slowest_timings(successful), start=1)
+    ]
 
     scalability_rows = [
         scalability_row(rank, run, results_dir)
@@ -950,8 +983,30 @@ def report_hardware(
         )
     ]
 
+    problematic_rows = [
+        problematic_row(rank, run, results_dir)
+        for rank, run in enumerate(
+            sorted(successful, key=problematic_sort_key)[:TOP_N],
+            start=1,
+        )
+    ]
+
     lines.extend(
         [
+            "### Most efficient (absolute speed)",
+            "",
+            md_table(
+                ["Rank", *RUN_CONFIG_HEADERS, "BLAS", "Baseline", "Best", "Run"],
+                absolute_rows,
+            ),
+            "",
+            "### Slowest (absolute duration at any n_jobs)",
+            "",
+            md_table(
+                ["Rank", *RUN_CONFIG_HEADERS, "BLAS", "Duration", "Run"],
+                slowest_rows,
+            ),
+            "",
             "### Most efficient (scalability)",
             "",
             md_table(
@@ -969,19 +1024,10 @@ def report_hardware(
                 scalability_rows,
             ),
             "",
+            "### Most problematic (lack of scalability)",
+            "",
         ]
     )
-
-    problematic_rows = [
-        problematic_row(rank, run, results_dir)
-        for rank, run in enumerate(
-            sorted(successful, key=problematic_sort_key)[:TOP_N],
-            start=1,
-        )
-    ]
-
-    lines.append("### Most problematic (lack of scalability)")
-    lines.append("")
     if problematic_rows:
         lines.append(
             md_table(
