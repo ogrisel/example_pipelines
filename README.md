@@ -21,7 +21,7 @@ pix run run-all
 ## Analyze results
 
 ```
-pixi run -e pypi-gil python analyze_regression_pipeline_tuning_results.py > RESULTS_SUMMARY.md
+pixi run -e pypi-gil refresh-results-summary
 ```
 
 Browse results: [RESULTS_SUMMARY.md](./RESULTS_SUMMARY.md).

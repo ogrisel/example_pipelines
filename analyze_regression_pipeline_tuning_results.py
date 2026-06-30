@@ -1087,6 +1087,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Emit machine-readable JSON instead of a markdown report.",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Write the markdown report to this file instead of stdout.",
+    )
     args = parser.parse_args(argv)
 
     if not args.results_dir.is_dir():
@@ -1141,7 +1146,11 @@ def main(argv: list[str] | None = None) -> int:
         report_lines.extend(
             report_hardware(hardware, grouped[hardware], results_dir=args.results_dir)
         )
-    print("\n".join(report_lines))
+    report = "\n".join(report_lines) + "\n"
+    if args.output:
+        args.output.write_text(report, encoding="utf-8")
+    else:
+        print(report, end="")
 
     return 0
 
