@@ -65,9 +65,11 @@ class RunAnalysis:
     baseline_duration_s: float | None
     best_duration_s: float | None
     best_n_jobs: int | None
+    peak_duration_s: float | None
     peak_speedup: float | None
     peak_speedup_n_jobs: int | None
     max_n_jobs: int | None
+    max_duration_s: float | None
     speedup_at_max_n_jobs: float | None
     parallel_efficiency_at_peak: float | None
     parallel_efficiency_at_max: float | None
@@ -156,9 +158,11 @@ def analyze_record(record: dict) -> RunAnalysis:
             baseline_duration_s=None,
             best_duration_s=None,
             best_n_jobs=None,
+            peak_duration_s=None,
             peak_speedup=None,
             peak_speedup_n_jobs=None,
             max_n_jobs=None,
+            max_duration_s=None,
             speedup_at_max_n_jobs=None,
             parallel_efficiency_at_peak=None,
             parallel_efficiency_at_max=None,
@@ -180,12 +184,15 @@ def analyze_record(record: dict) -> RunAnalysis:
         peak = max(speedup_timings, key=lambda timing: timing["speedup"])
         peak_speedup = peak["speedup"]
         peak_speedup_n_jobs = peak["n_jobs"]
+        peak_duration_s = peak["duration_s"]
     else:
         peak_speedup = None
         peak_speedup_n_jobs = None
+        peak_duration_s = None
 
     max_n_jobs = max(timing["n_jobs"] for timing in timings)
     at_max = next(timing for timing in timings if timing["n_jobs"] == max_n_jobs)
+    max_duration_s = at_max["duration_s"]
     speedup_at_max = at_max.get("speedup")
     if speedup_at_max is None and baseline_duration_s:
         speedup_at_max = baseline_duration_s / at_max["duration_s"]
@@ -214,9 +221,11 @@ def analyze_record(record: dict) -> RunAnalysis:
         baseline_duration_s=baseline_duration_s,
         best_duration_s=best_duration_s,
         best_n_jobs=best_n_jobs,
+        peak_duration_s=peak_duration_s,
         peak_speedup=peak_speedup,
         peak_speedup_n_jobs=peak_speedup_n_jobs,
         max_n_jobs=max_n_jobs,
+        max_duration_s=max_duration_s,
         speedup_at_max_n_jobs=speedup_at_max,
         parallel_efficiency_at_peak=parallel_efficiency_at_peak,
         parallel_efficiency_at_max=parallel_efficiency_at_max,
@@ -256,6 +265,43 @@ def fmt_ratio(value: float | None) -> str:
     if value is None:
         return "n/a"
     return f"{value:.2f}"
+
+
+def fmt_duration_at_n_jobs(
+    duration_s: float | None,
+    n_jobs: int | None,
+) -> str:
+    if duration_s is None:
+        return "n/a"
+    if n_jobs is None:
+        return fmt_seconds(duration_s)
+    return f"{fmt_seconds(duration_s)} @ n_jobs={n_jobs}"
+
+
+def fmt_run_timings(
+    run: RunAnalysis,
+    *,
+    include_baseline: bool = True,
+    include_best: bool = True,
+    include_peak: bool = False,
+    include_max: bool = False,
+) -> str:
+    parts: list[str] = []
+    if include_baseline:
+        parts.append(f"baseline {fmt_seconds(run.baseline_duration_s)}")
+    if include_best:
+        parts.append(
+            f"best {fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs)}"
+        )
+    if include_peak:
+        parts.append(
+            f"peak {fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs)}"
+        )
+    if include_max:
+        parts.append(
+            f"max {fmt_duration_at_n_jobs(run.max_duration_s, run.max_n_jobs)}"
+        )
+    return "; ".join(parts)
 
 
 def faster_label(
@@ -421,17 +467,25 @@ def report_gil_comparisons(runs: list[RunAnalysis]) -> None:
             print_metric_comparison(
                 "peak speedup",
                 gil_value=gil.peak_speedup,
-                gil_suffix=f"x @ n_jobs={gil.peak_speedup_n_jobs}",
+                gil_suffix=(
+                    f"x ({fmt_duration_at_n_jobs(gil.peak_duration_s, gil.peak_speedup_n_jobs)})"
+                ),
                 ft_value=ft.peak_speedup,
-                ft_suffix=f"x @ n_jobs={ft.peak_speedup_n_jobs}",
+                ft_suffix=(
+                    f"x ({fmt_duration_at_n_jobs(ft.peak_duration_s, ft.peak_speedup_n_jobs)})"
+                ),
                 lower_is_better=False,
             )
             print_metric_comparison(
                 "speedup at max cores",
                 gil_value=gil.speedup_at_max_n_jobs,
-                gil_suffix=f"x @ n_jobs={gil.max_n_jobs}",
+                gil_suffix=(
+                    f"x ({fmt_duration_at_n_jobs(gil.max_duration_s, gil.max_n_jobs)})"
+                ),
                 ft_value=ft.speedup_at_max_n_jobs,
-                ft_suffix=f"x @ n_jobs={ft.max_n_jobs}",
+                ft_suffix=(
+                    f"x ({fmt_duration_at_n_jobs(ft.max_duration_s, ft.max_n_jobs)})"
+                ),
                 lower_is_better=False,
             )
 
@@ -539,18 +593,15 @@ def report_hardware(hardware: HardwareKey, runs: list[RunAnalysis]) -> None:
     print("Most efficient (absolute speed)")
     print_run_line(
         fastest,
-        detail=(
-            f"best duration {fmt_seconds(fastest.best_duration_s)} "
-            f"at n_jobs={fastest.best_n_jobs} "
-            f"(baseline {fmt_seconds(fastest.baseline_duration_s)})"
-        ),
+        detail=fmt_run_timings(fastest, include_peak=False, include_max=False),
     )
     if fastest.run_id != fastest_baseline.run_id:
         print_run_line(
             fastest_baseline,
             detail=(
                 f"fastest single-thread baseline "
-                f"{fmt_seconds(fastest_baseline.baseline_duration_s)}"
+                f"{fmt_seconds(fastest_baseline.baseline_duration_s)}; "
+                f"best {fmt_duration_at_n_jobs(fastest_baseline.best_duration_s, fastest_baseline.best_n_jobs)}"
             ),
         )
     print()
@@ -560,8 +611,8 @@ def report_hardware(hardware: HardwareKey, runs: list[RunAnalysis]) -> None:
         best_peak_speedup,
         detail=(
             f"peak speedup {fmt_speedup(best_peak_speedup.peak_speedup)} "
-            f"at n_jobs={best_peak_speedup.peak_speedup_n_jobs} "
-            f"(best duration {fmt_seconds(best_peak_speedup.best_duration_s)})"
+            f"({fmt_duration_at_n_jobs(best_peak_speedup.peak_duration_s, best_peak_speedup.peak_speedup_n_jobs)}); "
+            f"{fmt_run_timings(best_peak_speedup, include_peak=False, include_max=False)}"
         ),
     )
     if scalable:
@@ -575,7 +626,8 @@ def report_hardware(hardware: HardwareKey, runs: list[RunAnalysis]) -> None:
                 f"best peak parallel efficiency "
                 f"{fmt_ratio(best_peak_efficiency.parallel_efficiency_at_peak)} "
                 f"(speedup {fmt_speedup(best_peak_efficiency.peak_speedup)} "
-                f"at n_jobs={best_peak_efficiency.peak_speedup_n_jobs})"
+                f"at {fmt_duration_at_n_jobs(best_peak_efficiency.peak_duration_s, best_peak_efficiency.peak_speedup_n_jobs)}); "
+                f"{fmt_run_timings(best_peak_efficiency, include_peak=False, include_max=False)}"
             ),
         )
     if scalable_at_max:
@@ -589,7 +641,8 @@ def report_hardware(hardware: HardwareKey, runs: list[RunAnalysis]) -> None:
                 f"best max-core parallel efficiency "
                 f"{fmt_ratio(best_max_efficiency.parallel_efficiency_at_max)} "
                 f"(speedup {fmt_speedup(best_max_efficiency.speedup_at_max_n_jobs)} "
-                f"at n_jobs={best_max_efficiency.max_n_jobs})"
+                f"at {fmt_duration_at_n_jobs(best_max_efficiency.max_duration_s, best_max_efficiency.max_n_jobs)}); "
+                f"{fmt_run_timings(best_max_efficiency, include_peak=False, include_max=False)}"
             ),
         )
     print()
@@ -631,11 +684,13 @@ def report_hardware(hardware: HardwareKey, runs: list[RunAnalysis]) -> None:
             detail=(
                 f"speedup at max n_jobs={run.max_n_jobs}: "
                 f"{fmt_speedup(run.speedup_at_max_n_jobs)} "
-                f"(peak {fmt_speedup(run.peak_speedup)} "
-                f"at n_jobs={run.peak_speedup_n_jobs}); "
+                f"({fmt_duration_at_n_jobs(run.max_duration_s, run.max_n_jobs)}); "
+                f"peak {fmt_speedup(run.peak_speedup)} "
+                f"({fmt_duration_at_n_jobs(run.peak_duration_s, run.peak_speedup_n_jobs)}); "
+                f"baseline {fmt_seconds(run.baseline_duration_s)}; "
+                f"best {fmt_duration_at_n_jobs(run.best_duration_s, run.best_n_jobs)}; "
                 f"slowdown at max {fmt_ratio(run.slowdown_at_max)}x baseline; "
-                f"max-core efficiency "
-                f"{fmt_ratio(run.parallel_efficiency_at_max)}"
+                f"max-core efficiency {fmt_ratio(run.parallel_efficiency_at_max)}"
             ),
         )
 
@@ -669,9 +724,11 @@ def analysis_to_dict(analysis: RunAnalysis) -> dict:
         "baseline_duration_s": analysis.baseline_duration_s,
         "best_duration_s": analysis.best_duration_s,
         "best_n_jobs": analysis.best_n_jobs,
+        "peak_duration_s": analysis.peak_duration_s,
         "peak_speedup": analysis.peak_speedup,
         "peak_speedup_n_jobs": analysis.peak_speedup_n_jobs,
         "max_n_jobs": analysis.max_n_jobs,
+        "max_duration_s": analysis.max_duration_s,
         "speedup_at_max_n_jobs": analysis.speedup_at_max_n_jobs,
         "parallel_efficiency_at_peak": analysis.parallel_efficiency_at_peak,
         "parallel_efficiency_at_max": analysis.parallel_efficiency_at_max,
