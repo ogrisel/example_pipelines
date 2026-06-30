@@ -7,16 +7,16 @@
     "random_state": 42,
     "script": "regression_pipeline_tuning.py"
   },
-  "completed_at": "2026-06-30T09:37:16.429835+00:00",
-  "recorded_at": "2026-06-30T09:36:22.608864+00:00",
-  "results_file": "20260630T113622_950d1495-7328-4b7c-87e2-71af489e799c.json",
+  "completed_at": "2026-06-30T14:44:05.886475+00:00",
+  "recorded_at": "2026-06-30T14:43:31.408497+00:00",
+  "results_file": "20260630T164331_03762451-2627-4b3c-9348-e6a02b180d35.json",
   "run": {
     "array_api_namespace": "numpy",
     "device": "cpu",
-    "joblib_backend": "threading",
+    "joblib_backend": "loky",
     "max_n_workers": 1
   },
-  "run_id": "950d1495-7328-4b7c-87e2-71af489e799c",
+  "run_id": "03762451-2627-4b3c-9348-e6a02b180d35",
   "system": {
     "cpu": {
       "architecture": "arm64",
@@ -80,35 +80,35 @@
   "timings": [
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 16.017729997634888,
+      "duration_s": 7.970340967178345,
       "error": null,
       "n_jobs": 1,
-      "recorded_at": "2026-06-30T09:36:22.612909+00:00",
+      "recorded_at": "2026-06-30T14:43:31.410725+00:00",
       "speedup": 1.0
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 10.551214933395386,
+      "duration_s": 7.9028191566467285,
       "error": null,
       "n_jobs": 2,
-      "recorded_at": "2026-06-30T09:36:38.662426+00:00",
-      "speedup": 1.518093423245277
+      "recorded_at": "2026-06-30T14:43:40.487122+00:00",
+      "speedup": 1.0085440156472296
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 12.223491907119751,
+      "duration_s": 6.228924036026001,
       "error": null,
       "n_jobs": 4,
-      "recorded_at": "2026-06-30T09:36:49.229063+00:00",
-      "speedup": 1.3104054160092442
+      "recorded_at": "2026-06-30T14:43:50.208954+00:00",
+      "speedup": 1.2795694603242187
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 14.955899953842163,
+      "duration_s": 6.321007251739502,
       "error": null,
       "n_jobs": 8,
-      "recorded_at": "2026-06-30T09:37:01.475656+00:00",
-      "speedup": 1.0709974021670252
+      "recorded_at": "2026-06-30T14:43:59.565450+00:00",
+      "speedup": 1.2609289389732872
     }
   ]
 }

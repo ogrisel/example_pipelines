@@ -7,16 +7,16 @@
     "random_state": 42,
     "script": "regression_pipeline_tuning.py"
   },
-  "completed_at": "2026-06-30T09:31:08.323806+00:00",
-  "recorded_at": "2026-06-30T09:26:53.513261+00:00",
-  "results_file": "20260630T112653_8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0.json",
+  "completed_at": "2026-06-30T14:42:20.388874+00:00",
+  "recorded_at": "2026-06-30T14:41:49.584579+00:00",
+  "results_file": "20260630T164149_335b67a5-cac7-4726-bb3b-b37953c367af.json",
   "run": {
     "array_api_namespace": "numpy",
     "device": "cpu",
-    "joblib_backend": "loky",
+    "joblib_backend": "threading",
     "max_n_workers": 1
   },
-  "run_id": "8eaa7123-b8db-4f1a-a0e0-4b56cc0452e0",
+  "run_id": "335b67a5-cac7-4726-bb3b-b37953c367af",
   "system": {
     "cpu": {
       "architecture": "arm64",
@@ -53,63 +53,62 @@
       }
     },
     "pixi": {
-      "environment": "openblas-pthreads-freethreading"
+      "environment": "newaccelerate-gil"
     },
     "python": {
-      "gil_enabled": false,
-      "version": "3.14.6 free-threading build | packaged by conda-forge | (main, Jun 12 2026, 08:50:34) [Clang 20.1.8 ]"
+      "gil_enabled": true,
+      "version": "3.13.14 | packaged by conda-forge | (main, Jun 12 2026, 09:44:24) [Clang 19.1.7 ]"
     },
     "threadpool_libraries": [
-      {
-        "architecture": "VORTEX",
-        "internal_api": "openblas",
-        "num_threads": 10,
-        "prefix": "libopenblas",
-        "threading_layer": "pthreads",
-        "user_api": "blas",
-        "version": "0.3.33"
-      },
       {
         "internal_api": "openmp",
         "num_threads": 10,
         "prefix": "libomp",
         "user_api": "openmp",
         "version": null
+      },
+      {
+        "architecture": null,
+        "internal_api": "newaccelerate",
+        "num_threads": null,
+        "threading_layer": null,
+        "user_api": "blas",
+        "version": null
       }
     ]
   },
   "timings": [
     {
-      "best_r2": 0.8654155135154724,
-      "duration_s": 180.54773712158203,
+      "best_r2": 0.8654154936472574,
+      "duration_s": 7.718496084213257,
       "error": null,
       "n_jobs": 1,
-      "recorded_at": "2026-06-30T09:26:53.521156+00:00",
+      "recorded_at": "2026-06-30T14:41:49.587479+00:00",
       "speedup": 1.0
     },
     {
-      "best_r2": 0.8654155135154724,
-      "duration_s": 34.8450608253479,
+      "best_r2": 0.8654154936472574,
+      "duration_s": 7.2936601638793945,
       "error": null,
       "n_jobs": 2,
-      "recorded_at": "2026-06-30T09:29:57.158734+00:00",
-      "speedup": 5.181444165832631
+      "recorded_at": "2026-06-30T14:41:57.329378+00:00",
+      "speedup": 1.0582472874782114
     },
     {
-      "best_r2": 0.8654155135154724,
-      "duration_s": 17.543581247329712,
+      "best_r2": 0.8654154936472574,
+      "duration_s": 7.799329996109009,
       "error": null,
       "n_jobs": 4,
-      "recorded_at": "2026-06-30T09:30:35.350712+00:00",
-      "speedup": 10.29138432890166
+      "recorded_at": "2026-06-30T14:42:04.636585+00:00",
+      "speedup": 0.989635787697651
     },
     {
-      "best_r2": 0.8654155135154724,
-      "duration_s": 11.298905849456787,
+      "best_r2": 0.8654154936472574,
+      "duration_s": 7.940193176269531,
       "error": null,
       "n_jobs": 8,
-      "recorded_at": "2026-06-30T09:30:57.024916+00:00",
-      "speedup": 15.979223079397741
+      "recorded_at": "2026-06-30T14:42:12.449101+00:00",
+      "speedup": 0.9720791311829982
     }
   ]
 }

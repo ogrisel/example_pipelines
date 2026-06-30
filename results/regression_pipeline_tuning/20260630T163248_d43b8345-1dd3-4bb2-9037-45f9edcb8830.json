@@ -7,16 +7,16 @@
     "random_state": 42,
     "script": "regression_pipeline_tuning.py"
   },
-  "completed_at": "2026-06-30T09:09:51.865232+00:00",
-  "recorded_at": "2026-06-30T09:09:07.165220+00:00",
-  "results_file": "20260630T110907_b18fc4f7-d7e6-4d79-91d0-27d330255d5b.json",
+  "completed_at": "2026-06-30T14:33:14.889496+00:00",
+  "recorded_at": "2026-06-30T14:32:48.990628+00:00",
+  "results_file": "20260630T163248_d43b8345-1dd3-4bb2-9037-45f9edcb8830.json",
   "run": {
     "array_api_namespace": "numpy",
     "device": "cpu",
     "joblib_backend": "loky",
     "max_n_workers": 1
   },
-  "run_id": "b18fc4f7-d7e6-4d79-91d0-27d330255d5b",
+  "run_id": "d43b8345-1dd3-4bb2-9037-45f9edcb8830",
   "system": {
     "cpu": {
       "architecture": "arm64",
@@ -80,35 +80,35 @@
   "timings": [
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 12.633015155792236,
+      "duration_s": 7.124961853027344,
       "error": null,
       "n_jobs": 1,
-      "recorded_at": "2026-06-30T09:09:07.167692+00:00",
+      "recorded_at": "2026-06-30T14:32:48.993969+00:00",
       "speedup": 1.0
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 11.39543604850769,
+      "duration_s": 5.0671608448028564,
       "error": null,
       "n_jobs": 2,
-      "recorded_at": "2026-06-30T09:09:21.295643+00:00",
-      "speedup": 1.108603049678526
+      "recorded_at": "2026-06-30T14:32:57.057441+00:00",
+      "speedup": 1.4061053262864303
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 6.983077049255371,
+      "duration_s": 3.9197261333465576,
       "error": null,
       "n_jobs": 4,
-      "recorded_at": "2026-06-30T09:09:34.761690+00:00",
-      "speedup": 1.8090900424962857
+      "recorded_at": "2026-06-30T14:33:03.214725+00:00",
+      "speedup": 1.817719302482044
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 6.635448932647705,
+      "duration_s": 5.417074918746948,
       "error": null,
       "n_jobs": 8,
-      "recorded_at": "2026-06-30T09:09:45.231433+00:00",
-      "speedup": 1.9038674374593305
+      "recorded_at": "2026-06-30T14:33:09.472358+00:00",
+      "speedup": 1.315278440837118
     }
   ]
 }

@@ -41,6 +41,7 @@ scikit-learn = ">=1.8"
 pypi-gil-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
 pypi-gil-loky = "python regression_pipeline_tuning.py --joblib-backend loky"
 refresh-results-summary = "python analyze_regression_pipeline_tuning_results.py --output RESULTS_SUMMARY.md"
+dedupe-results = "python dedupe_regression_pipeline_tuning_results.py"
 
 [feature.pypi-ft.tasks]
 pypi-freethreading-threading = "python regression_pipeline_tuning.py --joblib-backend threading"
