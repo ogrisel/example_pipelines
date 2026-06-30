@@ -7,16 +7,16 @@
     "random_state": 42,
     "script": "regression_pipeline_tuning.py"
   },
-  "completed_at": "2026-06-26T14:05:25.531931+00:00",
-  "recorded_at": "2026-06-26T14:04:48.728938+00:00",
-  "results_file": "20260626T160448_5f0ca50e-28f0-4212-95ff-4a01face8571.json",
+  "completed_at": "2026-06-30T09:08:16.424150+00:00",
+  "recorded_at": "2026-06-30T09:07:37.857954+00:00",
+  "results_file": "20260630T110737_6310fc6a-37ac-4415-ae3d-71b0505f1c09.json",
   "run": {
     "array_api_namespace": "numpy",
     "device": "cpu",
     "joblib_backend": "loky",
     "max_n_workers": 1
   },
-  "run_id": "5f0ca50e-28f0-4212-95ff-4a01face8571",
+  "run_id": "6310fc6a-37ac-4415-ae3d-71b0505f1c09",
   "system": {
     "cpu": {
       "architecture": "arm64",
@@ -32,32 +32,32 @@
     },
     "packages": {
       "joblib": {
-        "channel": "conda-forge",
+        "channel": "pypi.org",
         "version": "1.5.3"
       },
       "numpy": {
-        "channel": "conda-forge",
+        "channel": "pypi.org",
         "version": "2.5.0"
       },
       "pandas": {
-        "channel": "conda-forge",
+        "channel": "pypi.org",
         "version": "3.0.3"
       },
       "scikit-learn": {
-        "channel": "conda-forge",
+        "channel": "pypi.org",
         "version": "1.9.0"
       },
       "scipy": {
-        "channel": "conda-forge",
+        "channel": "pypi.org",
         "version": "1.18.0"
       }
     },
     "pixi": {
-      "environment": "newaccelerate-freethreading"
+      "environment": "pypi-gil"
     },
     "python": {
-      "gil_enabled": false,
-      "version": "3.14.6 free-threading build | packaged by conda-forge | (main, Jun 12 2026, 08:50:34) [Clang 20.1.8 ]"
+      "gil_enabled": true,
+      "version": "3.13.14 | packaged by conda-forge | (main, Jun 12 2026, 09:44:24) [Clang 19.1.7 ]"
     },
     "threadpool_libraries": [
       {
@@ -80,35 +80,35 @@
   "timings": [
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 8.558704853057861,
+      "duration_s": 11.29891300201416,
       "error": null,
       "n_jobs": 1,
-      "recorded_at": "2026-06-26T14:04:48.731765+00:00",
+      "recorded_at": "2026-06-30T09:07:37.860969+00:00",
       "speedup": 1.0
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 8.914305925369263,
+      "duration_s": 8.358869075775146,
       "error": null,
       "n_jobs": 2,
-      "recorded_at": "2026-06-26T14:04:58.443041+00:00",
-      "speedup": 0.9601089445113843
+      "recorded_at": "2026-06-30T09:07:50.536532+00:00",
+      "speedup": 1.351727476478793
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 6.734019041061401,
+      "duration_s": 6.482043743133545,
       "error": null,
       "n_jobs": 4,
-      "recorded_at": "2026-06-26T14:05:09.568277+00:00",
-      "speedup": 1.27096534786585
+      "recorded_at": "2026-06-30T09:08:00.711660+00:00",
+      "speedup": 1.7431096502523828
     },
     {
       "best_r2": 0.8654154936472574,
-      "duration_s": 6.157944679260254,
+      "duration_s": 6.338587999343872,
       "error": null,
       "n_jobs": 8,
-      "recorded_at": "2026-06-26T14:05:19.374497+00:00",
-      "speedup": 1.3898638748547523
+      "recorded_at": "2026-06-30T09:08:10.086942+00:00",
+      "speedup": 1.7825599334084732
     }
   ]
 }
