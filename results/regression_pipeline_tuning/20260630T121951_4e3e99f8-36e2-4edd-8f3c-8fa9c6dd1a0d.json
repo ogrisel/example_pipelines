@@ -1,0 +1,122 @@
+{
+  "benchmark": {
+    "cv_n_splits": 3,
+    "cv_test_size": 0.2,
+    "n_iter": 30,
+    "openml_data_id": 42165,
+    "random_state": 42,
+    "script": "regression_pipeline_tuning.py"
+  },
+  "completed_at": "2026-06-30T10:21:15.970022+00:00",
+  "recorded_at": "2026-06-30T10:19:51.920397+00:00",
+  "results_file": "20260630T121951_4e3e99f8-36e2-4edd-8f3c-8fa9c6dd1a0d.json",
+  "run": {
+    "array_api_namespace": "numpy",
+    "device": "cpu",
+    "joblib_backend": "threading",
+    "max_n_workers": 1
+  },
+  "run_id": "4e3e99f8-36e2-4edd-8f3c-8fa9c6dd1a0d",
+  "system": {
+    "cpu": {
+      "architecture": "x86_64",
+      "logical_cores": 16,
+      "manufacturer": "GenuineIntel",
+      "model": "Intel(R) Core(TM) Ultra X7 358H",
+      "physical_cores": 16
+    },
+    "os": {
+      "family": "Linux",
+      "platform": "Linux-6.17.0-23-generic-x86_64-with-glibc2.39",
+      "version": "6.17.0-23-generic"
+    },
+    "packages": {
+      "joblib": {
+        "channel": "conda-forge",
+        "version": "1.5.3"
+      },
+      "numpy": {
+        "channel": "conda-forge",
+        "version": "2.5.0"
+      },
+      "pandas": {
+        "channel": "conda-forge",
+        "version": "3.0.3"
+      },
+      "scikit-learn": {
+        "channel": "conda-forge",
+        "version": "1.9.0"
+      },
+      "scipy": {
+        "channel": "conda-forge",
+        "version": "1.18.0"
+      }
+    },
+    "pixi": {
+      "environment": "mkl-gil"
+    },
+    "python": {
+      "gil_enabled": true,
+      "version": "3.13.14 | packaged by conda-forge | (main, Jun 12 2026, 09:50:25) [GCC 14.3.0]"
+    },
+    "threadpool_libraries": [
+      {
+        "internal_api": "mkl",
+        "num_threads": 16,
+        "prefix": "libmkl_rt",
+        "threading_layer": "intel",
+        "user_api": "blas",
+        "version": "2026.0-Product"
+      },
+      {
+        "internal_api": "openmp",
+        "num_threads": 16,
+        "prefix": "libomp",
+        "user_api": "openmp",
+        "version": null
+      }
+    ]
+  },
+  "timings": [
+    {
+      "best_r2": 0.8654156525929769,
+      "duration_s": 8.708315134048462,
+      "error": null,
+      "n_jobs": 1,
+      "recorded_at": "2026-06-30T10:19:51.921366+00:00",
+      "speedup": 1.0
+    },
+    {
+      "best_r2": 0.8654156525929769,
+      "duration_s": 10.42250370979309,
+      "error": null,
+      "n_jobs": 2,
+      "recorded_at": "2026-06-30T10:20:00.644371+00:00",
+      "speedup": 0.8355300584701199
+    },
+    {
+      "best_r2": 0.8654156525929769,
+      "duration_s": 16.92377781867981,
+      "error": null,
+      "n_jobs": 4,
+      "recorded_at": "2026-06-30T10:20:11.079356+00:00",
+      "speedup": 0.5145609465775757
+    },
+    {
+      "best_r2": 0.8654156525929769,
+      "duration_s": 23.171485900878906,
+      "error": null,
+      "n_jobs": 8,
+      "recorded_at": "2026-06-30T10:20:28.016800+00:00",
+      "speedup": 0.3758203151623587
+    },
+    {
+      "best_r2": 0.8654156525929769,
+      "duration_s": 24.769569873809814,
+      "error": null,
+      "n_jobs": 16,
+      "recorded_at": "2026-06-30T10:20:51.200510+00:00",
+      "speedup": 0.35157312696237925
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "benchmark": {
+    "cv_n_splits": 3,
+    "cv_test_size": 0.2,
+    "n_iter": 30,
+    "openml_data_id": 42165,
+    "random_state": 42,
+    "script": "regression_pipeline_tuning.py"
+  },
+  "completed_at": "2026-06-30T10:13:45.224543+00:00",
+  "recorded_at": "2026-06-30T10:12:37.094258+00:00",
+  "results_file": "20260630T121237_fcfa8ee5-cacb-4f57-ac7c-77936d89267a.json",
+  "run": {
+    "array_api_namespace": "numpy",
+    "device": "cpu",
+    "joblib_backend": "threading",
+    "max_n_workers": 1
+  },
+  "run_id": "fcfa8ee5-cacb-4f57-ac7c-77936d89267a",
+  "system": {
+    "cpu": {
+      "architecture": "x86_64",
+      "logical_cores": 16,
+      "manufacturer": "GenuineIntel",
+      "model": "Intel(R) Core(TM) Ultra X7 358H",
+      "physical_cores": 16
+    },
+    "os": {
+      "family": "Linux",
+      "platform": "Linux-6.17.0-23-generic-x86_64-with-glibc2.39",
+      "version": "6.17.0-23-generic"
+    },
+    "packages": {
+      "joblib": {
+        "channel": "conda-forge",
+        "version": "1.5.3"
+      },
+      "numpy": {
+        "channel": "conda-forge",
+        "version": "2.5.0"
+      },
+      "pandas": {
+        "channel": "conda-forge",
+        "version": "3.0.3"
+      },
+      "scikit-learn": {
+        "channel": "conda-forge",
+        "version": "1.9.0"
+      },
+      "scipy": {
+        "channel": "conda-forge",
+        "version": "1.18.0"
+      }
+    },
+    "pixi": {
+      "environment": "openblas-pthreads-gil"
+    },
+    "python": {
+      "gil_enabled": true,
+      "version": "3.13.14 | packaged by conda-forge | (main, Jun 12 2026, 09:50:25) [GCC 14.3.0]"
+    },
+    "threadpool_libraries": [
+      {
+        "architecture": "Haswell",
+        "internal_api": "openblas",
+        "num_threads": 16,
+        "prefix": "libopenblas",
+        "threading_layer": "pthreads",
+        "user_api": "blas",
+        "version": "0.3.33"
+      },
+      {
+        "internal_api": "openmp",
+        "num_threads": 16,
+        "prefix": "libgomp",
+        "user_api": "openmp",
+        "version": null
+      }
+    ]
+  },
+  "timings": [
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 10.337870597839355,
+      "error": null,
+      "n_jobs": 1,
+      "recorded_at": "2026-06-30T10:12:37.095189+00:00",
+      "speedup": 1.0
+    },
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 12.159011125564575,
+      "error": null,
+      "n_jobs": 2,
+      "recorded_at": "2026-06-30T10:12:47.447966+00:00",
+      "speedup": 0.8502229738160011
+    },
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 15.13347053527832,
+      "error": null,
+      "n_jobs": 4,
+      "recorded_at": "2026-06-30T10:12:59.619444+00:00",
+      "speedup": 0.6831130092558925
+    },
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 14.763223648071289,
+      "error": null,
+      "n_jobs": 8,
+      "recorded_at": "2026-06-30T10:13:14.770250+00:00",
+      "speedup": 0.7002448004768881
+    },
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 15.675063371658325,
+      "error": null,
+      "n_jobs": 16,
+      "recorded_at": "2026-06-30T10:13:29.549467+00:00",
+      "speedup": 0.6595106094774067
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "benchmark": {
+    "cv_n_splits": 3,
+    "cv_test_size": 0.2,
+    "n_iter": 30,
+    "openml_data_id": 42165,
+    "random_state": 42,
+    "script": "regression_pipeline_tuning.py"
+  },
+  "completed_at": "2026-06-30T10:10:10.755901+00:00",
+  "recorded_at": "2026-06-30T10:09:17.858671+00:00",
+  "results_file": "20260630T120917_5f771075-b4b8-44a1-8d3b-9528d940fce2.json",
+  "run": {
+    "array_api_namespace": "numpy",
+    "device": "cpu",
+    "joblib_backend": "threading",
+    "max_n_workers": 1
+  },
+  "run_id": "5f771075-b4b8-44a1-8d3b-9528d940fce2",
+  "system": {
+    "cpu": {
+      "architecture": "x86_64",
+      "logical_cores": 16,
+      "manufacturer": "GenuineIntel",
+      "model": "Intel(R) Core(TM) Ultra X7 358H",
+      "physical_cores": 16
+    },
+    "os": {
+      "family": "Linux",
+      "platform": "Linux-6.17.0-23-generic-x86_64-with-glibc2.39",
+      "version": "6.17.0-23-generic"
+    },
+    "packages": {
+      "joblib": {
+        "channel": "pypi.org",
+        "version": "1.5.3"
+      },
+      "numpy": {
+        "channel": "pypi.org",
+        "version": "2.5.0"
+      },
+      "pandas": {
+        "channel": "pypi.org",
+        "version": "3.0.3"
+      },
+      "scikit-learn": {
+        "channel": "pypi.org",
+        "version": "1.9.0"
+      },
+      "scipy": {
+        "channel": "pypi.org",
+        "version": "1.18.0"
+      }
+    },
+    "pixi": {
+      "environment": "pypi-gil"
+    },
+    "python": {
+      "gil_enabled": true,
+      "version": "3.13.14 | packaged by conda-forge | (main, Jun 12 2026, 09:50:25) [GCC 14.3.0]"
+    },
+    "threadpool_libraries": [
+      {
+        "architecture": "Haswell",
+        "internal_api": "openblas",
+        "num_threads": 16,
+        "prefix": "libscipy_openblas",
+        "threading_layer": "pthreads",
+        "user_api": "blas",
+        "version": "0.3.33.112.0"
+      },
+      {
+        "architecture": "Haswell",
+        "internal_api": "openblas",
+        "num_threads": 16,
+        "prefix": "libscipy_openblas",
+        "threading_layer": "pthreads",
+        "user_api": "blas",
+        "version": "0.3.31.dev"
+      },
+      {
+        "internal_api": "openmp",
+        "num_threads": 16,
+        "prefix": "libgomp",
+        "user_api": "openmp",
+        "version": null
+      }
+    ]
+  },
+  "timings": [
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 7.808037757873535,
+      "error": null,
+      "n_jobs": 1,
+      "recorded_at": "2026-06-30T10:09:17.859638+00:00",
+      "speedup": 1.0
+    },
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 7.9786176681518555,
+      "error": null,
+      "n_jobs": 2,
+      "recorded_at": "2026-06-30T10:09:25.684355+00:00",
+      "speedup": 0.9786203679167105
+    },
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 11.25634217262268,
+      "error": null,
+      "n_jobs": 4,
+      "recorded_at": "2026-06-30T10:09:33.678613+00:00",
+      "speedup": 0.6936567526228901
+    },
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 11.780373811721802,
+      "error": null,
+      "n_jobs": 8,
+      "recorded_at": "2026-06-30T10:09:44.947752+00:00",
+      "speedup": 0.662800508936679
+    },
+    {
+      "best_r2": 0.8654161294301351,
+      "duration_s": 14.011480808258057,
+      "error": null,
+      "n_jobs": 16,
+      "recorded_at": "2026-06-30T10:09:56.744689+00:00",
+      "speedup": 0.5572599973353031
+    }
+  ]
+}
